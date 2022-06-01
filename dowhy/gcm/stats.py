@@ -2,9 +2,12 @@
 future.
 """
 
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Callable
 
 import numpy as np
+from numpy.matlib import repmat
+
+from dowhy.gcm.util.general import shape_into_2d
 
 
 def quantile_based_fwer(p_values: Union[np.ndarray, List[float]],
@@ -43,3 +46,96 @@ def quantile_based_fwer(p_values: Union[np.ndarray, List[float]],
         return float(p_values[0])
     else:
         return float(min(1.0, np.quantile(p_values / quantile, quantile)))
+
+
+def marginal_expectation(prediction_method: Callable[[np.ndarray], np.ndarray],
+                         feature_samples: np.ndarray,
+                         samples_of_interest: np.ndarray,
+                         features_of_interest_indices: List[int],
+                         return_averaged_results: bool = True,
+                         feature_perturbation: str = 'randomize_columns_jointly',
+                         max_batch_size: int = -1) -> np.ndarray:
+    """ Estimates the marginal expectation for samples in samples_of_interest when randomizing features that are not
+    part of features_of_interest_indices. This is, this function estimates y^i = E[Y | x^i_s, X_s'], where x^i_s is the
+    i-th sample from samples_of_interest, s denotes the features_of_interest_indices and X_s' denotes the randomized
+    features that are not in s. For the estimation, the given prediction_method is evaluated multiple times for the same
+    x^i_s, but different x_s' ~ X_s'.
+
+    :param prediction_method: Prediction method of interest. This should expect a numpy array as input for making
+    predictions.
+    :param feature_samples: Samples from the joint distribution. These are used as 'background samples'.
+    :param samples_of_interest: Samples for which the marginal expectation should be estimated.
+    :param features_of_interest_indices: Column indices of the features in s.
+    :param return_averaged_results: If set to True, the expectation over all evaluated samples for the i-th
+    sample_of_interest is returned. If set to False, all corresponding results for the i-th sample are returned.
+    :param feature_perturbation: Type of feature permutation:
+        'randomize_columns_independently': Each feature not in s is randomly permuted separately.
+        'randomize_columns_jointly': All features not in s are jointly permuted. Note that this still represents an
+        interventional distribution.
+    :param max_batch_size: Maximum batch size for a estimating the predictions. This has a significant influence on the
+    overall memory usage. If set to -1, all samples are used in one batch.
+    :return: If return_averaged_results is False, a numpy array where the i-th entry belongs to the marginal expectation
+    of x^i_s when randomizing the remaining features.
+    If return_averaged_results is True, a two dimensional numpy array where the i-th entry contains all
+    predictions for x^i_s when randomizing the remaining features.
+    """
+    feature_samples, samples_of_interest = shape_into_2d(feature_samples, samples_of_interest)
+
+    batch_size = samples_of_interest.shape[0] if max_batch_size == -1 else max_batch_size
+    result = [np.nan] * samples_of_interest.shape[0]
+
+    # Make copy to avoid manipulating the original matrix.
+    feature_samples = np.array(feature_samples)
+
+    features_to_randomize = np.delete(np.arange(0, feature_samples.shape[1]), features_of_interest_indices)
+
+    if feature_perturbation == 'randomize_columns_independently':
+        feature_samples = permute_features(feature_samples, features_to_randomize, False)
+    elif feature_perturbation == 'randomize_columns_jointly':
+        feature_samples = permute_features(feature_samples, features_to_randomize, True)
+    else:
+        raise ValueError("Unknown argument %s as feature_perturbation type!" % feature_perturbation)
+
+    inputs = repmat(feature_samples, batch_size, 1)
+    for offset in range(0, samples_of_interest.shape[0], batch_size):
+        if offset + batch_size > samples_of_interest.shape[0]:
+            adjusted_batch_size = samples_of_interest.shape[0] - offset
+            inputs = inputs[:adjusted_batch_size * feature_samples.shape[0]]
+        else:
+            adjusted_batch_size = batch_size
+
+        for index in range(adjusted_batch_size):
+            inputs[index * feature_samples.shape[0]:(index + 1) * feature_samples.shape[0],
+            features_of_interest_indices] = samples_of_interest[offset + index, features_of_interest_indices]
+
+        predictions = np.array(prediction_method(inputs))
+
+        for index in range(adjusted_batch_size):
+            if return_averaged_results:
+                result[offset + index] = np.mean(predictions[index * feature_samples.shape[0]:
+                                                             (index + 1) * feature_samples.shape[0]], axis=0)
+            else:
+                result[offset + index] = predictions[index * feature_samples.shape[0]:
+                                                     (index + 1) * feature_samples.shape[0]]
+
+    return np.array(result)
+
+
+def permute_features(feature_samples: np.ndarray,
+                     features_to_permute: Union[List[int], np.ndarray],
+                     randomize_features_jointly: bool) -> np.ndarray:
+    # Making copy to ensure that the original object is not modified.
+    feature_samples = np.array(feature_samples)
+
+    if randomize_features_jointly:
+        # Permute samples jointly. This still represents an interventional distribution.
+        feature_samples[:, features_to_permute] \
+            = feature_samples[np.random.choice(feature_samples.shape[0],
+                                               feature_samples.shape[0],
+                                               replace=False)][:, features_to_permute]
+    else:
+        # Permute samples independently.
+        for feature in features_to_permute:
+            np.random.shuffle(feature_samples[:, feature])
+
+    return feature_samples
