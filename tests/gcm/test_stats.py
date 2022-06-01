@@ -3,7 +3,7 @@ import pytest
 from flaky import flaky
 from pytest import approx
 
-from dowhy.gcm.stats import quantile_based_fwer
+from dowhy.gcm.stats import quantile_based_fwer, estimate_f_test_p_value
 from dowhy.gcm.util.general import geometric_median
 
 
@@ -59,3 +59,57 @@ def test_quantile_based_fwer_raises_error():
 
     with pytest.raises(ValueError):
         assert quantile_based_fwer(np.array([0.1, 0.5, 1]), quantile=-0.5)
+
+
+@flaky(max_runs=2)
+def test_given_linear_dependent_data_when_estimate_f_test_p_value_then_returns_expected_result():
+    X_training = np.random.normal(0, 1, 1000)
+    Y_training = X_training + np.random.normal(0, 0.05, 1000)
+
+    X_test = np.random.normal(0, 1, 1000)
+    Y_test = X_test + np.random.normal(0, 0.05, 1000)
+
+    assert estimate_f_test_p_value(X_training,
+                                   np.array([]),
+                                   Y_training,
+                                   X_test,
+                                   np.array([]),
+                                   Y_test) < 0.05
+
+    Y_training = np.random.normal(0, 0.05, 1000)
+    Y_test = np.random.normal(0, 0.05, 1000)
+
+    assert estimate_f_test_p_value(X_training,
+                                   np.array([]),
+                                   Y_training,
+                                   X_test,
+                                   np.array([]),
+                                   Y_test) >= 0.05
+
+
+@flaky(max_runs=2)
+def test_given_multivariate_dependent_data_when_estimate_f_test_p_value_then_returns_expected_result():
+    X1_training = np.random.normal(0, 1, 1000)
+    X2_training = np.random.normal(0, 1, 1000)
+    Y_training = X1_training + X2_training + np.random.normal(0, 0.05, 1000)
+
+    X1_test = np.random.normal(0, 1, 1000)
+    X2_test = np.random.normal(0, 1, 1000)
+    Y_test = X1_test + X2_test + np.random.normal(0, 0.05, 1000)
+
+    assert estimate_f_test_p_value(np.column_stack([X1_training, X2_training]),
+                                   X1_training,
+                                   Y_training,
+                                   np.column_stack([X1_test, X2_test]),
+                                   X1_test,
+                                   Y_test) < 0.05
+
+    Y_training = X1_training + np.random.normal(0, 0.05, 1000)
+    Y_test = X1_test + np.random.normal(0, 0.05, 1000)
+
+    assert estimate_f_test_p_value(np.column_stack([X1_training, X2_training]),
+                                   X1_training,
+                                   Y_training,
+                                   np.column_stack([X1_test, X2_test]),
+                                   X1_test,
+                                   Y_test) >= 0.05
