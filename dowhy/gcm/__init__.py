@@ -11,3 +11,4 @@ from .stochastic_models import EmpiricalDistribution, BayesianGaussianMixtureDis
 from .whatif import interventional_samples, counterfactual_samples
 from .distribution_change import distribution_change, distribution_change_of_graphs
 from . import util, ml
+from .confidence_intervals import confidence_intervals
