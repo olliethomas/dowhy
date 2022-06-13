@@ -51,9 +51,7 @@ def estimate_kl_divergence_continuous(X: np.ndarray, Y: np.ndarray) -> float:
 
     result = np.sum((d / n) * np.log((nu + EPS) / (rho + EPS))) + np.log(m / (n - 1))
 
-    if result < 0:
-        result = 0
-
+    result = max(result, 0)
     return result
 
 

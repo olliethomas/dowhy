@@ -166,14 +166,15 @@ class ScipyDistribution(StochasticModel):
         elif scipy_distribution.name in _CONTINUOUS_DISTRIBUTIONS:
             parameter_list += ['loc', 'scale']
         else:
-            raise ValueError("Distribution %s not found in the list of continuous and discrete distributions!"
-                             % scipy_distribution.name)
+            raise ValueError(
+                f"Distribution {scipy_distribution.name} not found in the list of continuous and discrete distributions!"
+            )
 
-        parameters_dictionary = {}
-        for i, parameter_name in enumerate(parameter_list):
-            parameters_dictionary[parameter_name] = parameters[i]
 
-        return parameters_dictionary
+        return {
+            parameter_name: parameters[i]
+            for i, parameter_name in enumerate(parameter_list)
+        }
 
 
 class EmpiricalDistribution(StochasticModel):
@@ -194,7 +195,7 @@ class EmpiricalDistribution(StochasticModel):
 
     def draw_samples(self, num_samples: int) -> np.ndarray:
         if self.data is None:
-            raise RuntimeError('%s has not been fitted!' % self.__class__.__name__)
+            raise RuntimeError(f'{self.__class__.__name__} has not been fitted!')
 
         return self.data[np.random.choice(self.data.shape[0], size=num_samples, replace=True), :]
 
@@ -242,7 +243,7 @@ class BayesianGaussianMixtureDistribution(StochasticModel):
 
     def draw_samples(self, num_samples: int) -> np.ndarray:
         if self.__gmm_model is None:
-            raise RuntimeError('%s has not been fitted!' % self.__class__.__name__)
+            raise RuntimeError(f'{self.__class__.__name__} has not been fitted!')
 
         return shape_into_2d(self.__gmm_model.sample(num_samples)[0])
 

@@ -27,7 +27,7 @@ class GeneralizedLinearModelEstimator(RegressionEstimator):
         # parameters needed to create an object of this class
         args_dict = {k: v for k, v in locals().items()
                      if k not in type(self)._STD_INIT_ARGS}
-        args_dict.update(kwargs)
+        args_dict |= kwargs
         super().__init__(*args, **args_dict)
         self.logger.info("INFO: Using Generalized Linear Model Estimator")
         if glm_family is not None:
@@ -37,7 +37,7 @@ class GeneralizedLinearModelEstimator(RegressionEstimator):
         self.predict_score = predict_score
         # Checking if Y is binary
         outcome_values = self._data[self._outcome_name].astype(int).unique()
-        self.outcome_is_binary = all([v in [0,1] for v in outcome_values])
+        self.outcome_is_binary = all(v in [0,1] for v in outcome_values)
 
     def _build_model(self):
         features = self._build_features()
@@ -45,13 +45,14 @@ class GeneralizedLinearModelEstimator(RegressionEstimator):
         return (features, model)
 
     def predict_fn(self, model, features):
-        if self.outcome_is_binary:
-            if self.predict_score:
-                return model.predict(features)
-            else:
-                return (model.predict(features) > 0.5).astype(int)
-        else:
+        if (
+            self.outcome_is_binary
+            and self.predict_score
+            or not self.outcome_is_binary
+        ):
             return model.predict(features)
+        else:
+            return (model.predict(features) > 0.5).astype(int)
 
     def construct_symbolic_estimator(self, estimand):
         expr = "b: " + ",".join(estimand.outcome_variable) + "~" + "Sigmoid("

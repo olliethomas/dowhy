@@ -38,9 +38,7 @@ def compute_ci(r=None, nx=None, ny=None, confidence=.95):
     se = 1 / np.sqrt(nx - 3) # Standard error = 1/sqrt(N-3) where N is sample size
     crit = np.abs(norm.ppf((1 - confidence) / 2)) # Z-critical value 
     ci_z = np.array([z - crit * se, z + crit * se]) # CI = point estimator ± critical value*error
-    ci = np.tanh(ci_z)  # Back Transform to r-space
-
-    return ci
+    return np.tanh(ci_z)
 
 def partial_corr(data=None, x=None, y=None, z=None, method="pearson"):
     """ Calculate Partial correlation which is the degree of association between 
@@ -73,8 +71,7 @@ def partial_corr(data=None, x=None, y=None, z=None, method="pearson"):
         assert y not in z # y and z should be distinct
 
     combined_variables = [x,y] # Combine all variables - x, y and z
-    for var in z:
-        combined_variables.append(var) 
+    combined_variables.extend(iter(z))
     data = data[combined_variables].dropna() #Drop missing values
     n = data.shape[0] # Number of samples after dropping missing values
     k = data.shape[1] - 2 # Number of covariates
@@ -87,9 +84,9 @@ def partial_corr(data=None, x=None, y=None, z=None, method="pearson"):
     Vi = np.linalg.pinv(V, hermitian=True)   # Computing Inverse Covariance Matrix
     Vi_diag = Vi.diagonal()  # Storing variance
     D = np.diag(np.sqrt(1 / Vi_diag)) # Storing Standard Deviations from diagonal of inverse covariance matrix
-    pcor = -1 * (D @ Vi @ D)  
+    pcor = -1 * (D @ Vi @ D)
     r = pcor[0,1]
-    
+
     if np.isnan(r):
         return {'n': n, 'r': np.nan, 'CI95%': np.nan, 'p-val': np.nan}
 
@@ -100,13 +97,12 @@ def partial_corr(data=None, x=None, y=None, z=None, method="pearson"):
 
     ci = compute_ci(r=r, nx=(n - k), ny=(n - k)) #Finding Confidence Interval
     ci=np.round(ci, 3)
-    stats = {
+    return {
         'n': n,
         'r': r,
         'CI95%': [ci],
         'p-val': pval.round(5),
     }
-    return stats
 
 def entropy(x):
     """"

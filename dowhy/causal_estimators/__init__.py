@@ -9,7 +9,10 @@ def get_class_object(method_name, estimator_name=None, *args, **kwargs):
         module_name = method_name
         class_name = string.capwords(method_name, "_").replace('_', '')
 
-        estimator_module = import_module('.' + module_name, package="dowhy.causal_estimators")
+        estimator_module = import_module(
+            f'.{module_name}', package="dowhy.causal_estimators"
+        )
+
         estimator_class = getattr(estimator_module, class_name)
         assert issubclass(estimator_class, CausalEstimator)
 
@@ -23,6 +26,6 @@ def get_class_object(method_name, estimator_name=None, *args, **kwargs):
 
         except (AttributeError, AssertionError, ImportError):
             est_name = method_name if estimator_name is None else estimator_name
-            raise ImportError('{} is not an existing causal estimator.'.format(est_name))
+            raise ImportError(f'{est_name} is not an existing causal estimator.')
 
     return estimator_class

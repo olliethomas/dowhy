@@ -95,7 +95,10 @@ def marginal_expectation(prediction_method: Callable[[np.ndarray], np.ndarray],
     elif feature_perturbation == 'randomize_columns_jointly':
         feature_samples = permute_features(feature_samples, features_to_randomize, True)
     else:
-        raise ValueError("Unknown argument %s as feature_perturbation type!" % feature_perturbation)
+        raise ValueError(
+            f"Unknown argument {feature_perturbation} as feature_perturbation type!"
+        )
+
 
     # The given prediction method has to be evaluated multiple times on a large amount of different inputs. Typically,
     # the batch evaluation of a prediction model on multiple inputs at the same time is significantly faster

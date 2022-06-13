@@ -190,15 +190,13 @@ class CausalModel:
                                            estimand_type,
                                            method_name,
                                            proceed_when_unidentifiable=proceed_when_unidentifiable)
-            identified_estimand = self.identifier.identify_effect()
+            return self.identifier.identify_effect()
         else:
             self.identifier = CausalIdentifier(self._graph,
                                                estimand_type,
                                                method_name,
                                                proceed_when_unidentifiable=proceed_when_unidentifiable)
-            identified_estimand = self.identifier.identify_effect(optimize_backdoor=optimize_backdoor)
-
-        return identified_estimand
+            return self.identifier.identify_effect(optimize_backdoor=optimize_backdoor)
 
     def estimate_effect(self, identified_estimand, method_name=None,
                         control_value=0,
@@ -246,10 +244,7 @@ class CausalModel:
             else:
                 effect_modifiers = self._effect_modifiers
 
-        if method_name is None:
-            #TODO add propensity score as default backdoor method, iv as default iv method, add an informational message to show which method has been selected.
-            pass
-        else:
+        if method_name is not None:
             # TODO add dowhy as a prefix to all dowhy estimators
             num_components = len(method_name.split("."))
             str_arr = method_name.split(".", maxsplit=1)
@@ -261,18 +256,24 @@ class CausalModel:
                 estimator_package =  estimator_name.split(".")[0]
                 if estimator_package == 'dowhy': # For updated dowhy methods
                     estimator_method = estimator_name.split(".",maxsplit=1)[1] # discard dowhy from the full package name
-                    causal_estimator_class = causal_estimators.get_class_object(estimator_method + "_estimator")
+                    causal_estimator_class = causal_estimators.get_class_object(
+                        f"{estimator_method}_estimator"
+                    )
+
                 else:
                     third_party_estimator_package = estimator_package
                     causal_estimator_class = causal_estimators.get_class_object(third_party_estimator_package, estimator_name)
                     if method_params is None:
                         method_params = {}
                     # Define the third-party estimation method to be used
-                    method_params[third_party_estimator_package + "_methodname"] = estimator_name
+                    method_params[f"{third_party_estimator_package}_methodname"] = estimator_name
             else: # For older dowhy methods
                 print(estimator_name)
                 # Process the dowhy estimators
-                causal_estimator_class = causal_estimators.get_class_object(estimator_name + "_estimator")
+                causal_estimator_class = causal_estimators.get_class_object(
+                    f"{estimator_name}_estimator"
+                )
+
         if identified_estimand.no_directed_path:
             self.logger.warning("No directed path from {0} to {1}.".format(
                 self._treatment,
@@ -348,14 +349,15 @@ class CausalModel:
             and other method-dependent information
 
         """
-        if method_name is None:
-            pass
-        else:
+        if method_name is not None:
             str_arr = method_name.split(".", maxsplit=1)
             identifier_name = str_arr[0]
             estimator_name = str_arr[1]
             identified_estimand.set_identifier_method(identifier_name)
-            causal_estimator_class = causal_estimators.get_class_object(estimator_name + "_estimator")
+            causal_estimator_class = causal_estimators.get_class_object(
+                f"{estimator_name}_estimator"
+            )
+
 
         # Check if estimator's target estimand is identified
         if identified_estimand.estimands[identifier_name] is None:
@@ -406,9 +408,7 @@ class CausalModel:
         if estimate is None or estimate.value is None:
             self.logger.error("Aborting refutation! No estimate is provided.")
             raise ValueError("Aborting refutation! No valid estimate is provided.")
-        if method_name is None:
-            pass
-        else:
+        if method_name is not None:
             refuter_class = causal_refuters.get_class_object(method_name)
 
         refuter = refuter_class(
@@ -417,8 +417,7 @@ class CausalModel:
             estimate=estimate,
             **kwargs
         )
-        res = refuter.refute_estimate()
-        return res
+        return refuter.refute_estimate()
 
     def view_model(self, layout="dot", size=(8, 6), file_name="causal_model"):
         """View the causal DAG.
@@ -490,7 +489,7 @@ class CausalModel:
         if independence_constraints is None:
             all_nodes=list(self._graph.get_all_nodes(include_unobserved=False))
             num_nodes = len(all_nodes)
-            array_indices = list(range(0,num_nodes))
+            array_indices = list(range(num_nodes))
             all_possible_combinations = list(combinations(array_indices, 2))  #Generating sets of indices of size 2 for different x and y
             conditional_independences=[]
             self.logger.info("The followed conditional independences are true for the input graph")

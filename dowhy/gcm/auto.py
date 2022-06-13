@@ -104,23 +104,23 @@ def assign_causal_mechanisms(causal_model: ProbabilisticCausalModel,
                 causal_model.set_causal_mechanism(node, AdditiveNoiseModel(prediction_model))
 
 
-def select_model(X: np.ndarray, Y: np.ndarray, model_selection_quality: AssignmentQuality) \
-        -> Union[PredictionModel, ClassificationModel]:
+def select_model(X: np.ndarray, Y: np.ndarray, model_selection_quality: AssignmentQuality) -> Union[PredictionModel, ClassificationModel]:
     target_is_categorical = is_categorical(Y)
 
     if model_selection_quality == AssignmentQuality.GOOD:
         use_linear_prediction_models = has_linear_relationship(X, Y)
 
         if target_is_categorical:
-            if use_linear_prediction_models:
-                return create_logistic_regression_classifier(max_iter=1000)
-            else:
-                return create_hist_gradient_boost_classifier()
+            return (
+                create_logistic_regression_classifier(max_iter=1000)
+                if use_linear_prediction_models
+                else create_hist_gradient_boost_classifier()
+            )
+
+        if use_linear_prediction_models:
+            return create_linear_regressor()
         else:
-            if use_linear_prediction_models:
-                return create_linear_regressor()
-            else:
-                return create_hist_gradient_boost_regressor()
+            return create_hist_gradient_boost_regressor()
     elif model_selection_quality == AssignmentQuality.BETTER:
         if target_is_categorical:
             return find_best_model(_LIST_OF_POTENTIAL_CLASSIFIERS, X, Y)()

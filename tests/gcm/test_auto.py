@@ -44,8 +44,8 @@ def test_given_linear_regression_problem_when_auto_assign_causal_models_with_goo
 
     causal_model = ProbabilisticCausalModel(nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4',
                                                                                                              'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.GOOD)
     assert isinstance(causal_model.causal_mechanism('Y').prediction_model.sklearn_model, LinearRegression)
@@ -57,8 +57,8 @@ def test_given_linear_regression_problem_when_auto_assign_causal_models_with_bet
 
     causal_model = ProbabilisticCausalModel(
         nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4', 'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.BETTER)
     assert isinstance(causal_model.causal_mechanism('Y').prediction_model.sklearn_model, LinearRegression)
@@ -70,8 +70,8 @@ def test_given_non_linear_regression_problem_when_auto_assign_causal_models_with
 
     causal_model = ProbabilisticCausalModel(
         nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4', 'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.GOOD)
     assert isinstance(causal_model.causal_mechanism('Y').prediction_model.sklearn_model, HistGradientBoostingRegressor)
@@ -83,8 +83,8 @@ def test_given_non_linear_regression_problem_when_auto_assign_causal_models_with
 
     causal_model = ProbabilisticCausalModel(
         nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4', 'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.BETTER)
     assert not isinstance(causal_model.causal_mechanism('Y').prediction_model.sklearn_model, LinearRegression)
@@ -99,8 +99,8 @@ def test_given_linear_classification_problem_when_auto_assign_causal_models_with
 
     causal_model = ProbabilisticCausalModel(
         nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4', 'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.GOOD)
     assert isinstance(causal_model.causal_mechanism('Y').classifier_model.sklearn_model, LogisticRegression)
@@ -112,8 +112,8 @@ def test_given_linear_classification_problem_when_auto_assign_causal_models_with
 
     causal_model = ProbabilisticCausalModel(
         nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4', 'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.BETTER)
     assert isinstance(causal_model.causal_mechanism('Y').classifier_model.sklearn_model, LogisticRegression)
@@ -125,8 +125,8 @@ def test_given_non_linear_classification_problem_when_auto_assign_causal_models_
 
     causal_model = ProbabilisticCausalModel(
         nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4', 'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.GOOD)
     assert isinstance(causal_model.causal_mechanism('Y').classifier_model.sklearn_model, HistGradientBoostingClassifier)
@@ -138,8 +138,8 @@ def test_given_non_linear_classification_problem_when_auto_assign_causal_models_
 
     causal_model = ProbabilisticCausalModel(
         nx.DiGraph([('X0', 'Y'), ('X1', 'Y'), ('X2', 'Y'), ('X3', 'Y'), ('X4', 'Y')]))
-    data = {'X' + str(i): X[:, i] for i in range(X.shape[1])}
-    data.update({'Y': Y})
+    data = {f'X{str(i)}': X[:, i] for i in range(X.shape[1])}
+    data['Y'] = Y
 
     assign_causal_mechanisms(causal_model, pd.DataFrame(data), quality=AssignmentQuality.BETTER)
     assert not isinstance(causal_model.causal_mechanism('Y').classifier_model.sklearn_model, LogisticRegression)

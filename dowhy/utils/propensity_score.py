@@ -13,14 +13,13 @@ def propensity_of_treatment_score(data, covariates, treatment, model='logistic',
         model = LogisticRegression(solver='lbfgs')
         data, covariates = binarize_discrete(data, covariates, variable_types)
         model = model.fit(data[covariates], data[treatment].values.ravel())
-        scores = model.predict_proba(data[covariates])[:, 1]
-        return scores
+        return model.predict_proba(data[covariates])[:, 1]
     else:
         raise NotImplementedError
 
 
 def state_propensity_score(data, covariates, treatments, variable_types=None):
-    if len(set(covariates).intersection(treatments)) != 0:
+    if set(covariates).intersection(treatments):
         raise Exception("Can't control for causal states. Remove treatment from covariates.")
     log_propensities = {}
     for i, treatment in enumerate(treatments):
@@ -40,8 +39,10 @@ def state_propensity_score(data, covariates, treatments, variable_types=None):
                                                                             treatment,
                                                                             variable_types))
         else:
-            raise Exception("Variable type {} for variable {} is not a recognized format type.".format(variable_types[treatment],
-                                                                                                       treatment))
+            raise Exception(
+                f"Variable type {variable_types[treatment]} for variable {treatment} is not a recognized format type."
+            )
+
     scores = np.zeros(len(data))
     for treatment in treatments:
         scores += log_propensities[treatment]
@@ -74,11 +75,7 @@ def continuous_treatment_model(data, covariates, treatment, variable_types):
     else:
         defaults = EstimatorSettings(n_jobs=-1, efficient=False)
 
-    if 'c' not in variable_types.values():
-        bw = 'cv_ml'
-    else:
-        bw = 'normal_reference'
-
+    bw = 'cv_ml' if 'c' not in variable_types.values() else 'normal_reference'
     indep_type = get_type_string(covariates, variable_types)
     dep_type = get_type_string([treatment], variable_types)
 
@@ -88,8 +85,7 @@ def continuous_treatment_model(data, covariates, treatment, variable_types):
                                        indep_type=''.join(indep_type),
                                        bw=bw,
                                        defaults=defaults)
-    scores = model.pdf(endog_predict=data[treatment], exog_predict=data[covariates])
-    return scores
+    return model.pdf(endog_predict=data[treatment], exog_predict=data[covariates])
 
 
 def get_type_string(variables, variable_types):
@@ -103,8 +99,10 @@ def get_type_string(variables, variable_types):
         elif variable_types[variable] in ['c']:
             var_types.append('c')
         else:
-            raise Exception("Variable type {} for variable {} not a recognized type.".format(variable_types[variable],
-                                                                                             variable))
+            raise Exception(
+                f"Variable type {variable_types[variable]} for variable {variable} not a recognized type."
+            )
+
     return "".join(var_types)
 
 

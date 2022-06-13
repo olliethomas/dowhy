@@ -4,7 +4,7 @@ def parse_state(state):
     if type(state) == list:
         return state
     if type(state) == dict:
-        return [xi for xi in state.keys()]
+        return list(state.keys())
     if not state:
         return []
-    raise Exception('Input format for {} not recognized: {}'.format(state, type(state)))
+    raise Exception(f'Input format for {state} not recognized: {type(state)}')

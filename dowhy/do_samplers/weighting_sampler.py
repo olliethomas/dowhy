@@ -43,5 +43,4 @@ class WeightingSampler(DoSampler):
         self._df.index = self._data.index
 
     def compute_weights(self):
-        weights = 1. / self._df['propensity_score']
-        return weights
+        return 1. / self._df['propensity_score']

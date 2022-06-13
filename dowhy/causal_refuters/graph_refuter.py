@@ -73,9 +73,9 @@ class GraphRefuter(CausalRefuter):
         discrete_columns = []
         continuous_columns = []
         binary_columns = []
-        variable_type = dict()
+        variable_type = {}
         for node in all_nodes:
-            if self._data[node].dtype == np.int64 or self._data[node].dtype == np.int32:
+            if self._data[node].dtype in [np.int64, np.int32]:
                 discrete_columns.append(node)
                 variable_type[node] = "discrete"
                 if self._data[node].isin([0,1]).all():
@@ -104,7 +104,7 @@ class GraphRefuter(CausalRefuter):
                 #   1. either a and b is continuous and the other is binary
                 #   2. both a and b are binary
                 self.partial_correlation(x = a, y= b, z = c) 
-            
+
             elif all(node in discrete_columns for node in c) and (a in discrete_columns or b in discrete_columns): 
                 # c is discrete and
                 # either a or b is continuous and the other is discrete
@@ -117,11 +117,9 @@ class GraphRefuter(CausalRefuter):
             else:
                 key = ((a,b)+(c,))
                 self._results[key]= [None, "NotImplemented"]
-                variable_types_c = []
-                for var in c:
-                    variable_types_c.append(variable_type[var])
+                variable_types_c = [variable_type[var] for var in c]
                 print("The following setting with {0} as {1}, {2} as {3}, {4} as {5} not supported".format(a, variable_type[a], b, variable_type[b], c, variable_types_c))
-                
+
         self.set_refutation_result(number_of_constraints_model = len(independence_constraints))
         refute.add_conditional_independence_test_result(number_of_constraints_model = len(independence_constraints), number_of_constraints_satisfied = len(self._true_implications), refutation_result = self._refutation_passed)
         return refute

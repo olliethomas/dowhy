@@ -31,9 +31,7 @@ class LinearSensitivityAnalyzer:
         self.treatment_name = []
         # original_treatment_name: : stores original variable names for labelling
         self.original_treatment_name = treatment_name
-        for t in range(len(treatment_name)):
-            self.treatment_name.append("x"+str(t+1))
-        
+        self.treatment_name.extend(f"x{str(t+1)}" for t in range(len(treatment_name)))
         self.percent_change_estimate = percent_change_estimate
         self.significance_level = significance_level
         self.confounder_increases_estimate = confounder_increases_estimate
@@ -42,9 +40,10 @@ class LinearSensitivityAnalyzer:
         self.null_hypothesis_effect = null_hypothesis_effect
 
         # common_causes_map : maps the original variable names to variable names in OLS regression
-        self.common_causes_map = {}
-        for i in range(len(common_causes_order)):
-            self.common_causes_map[common_causes_order[i]] = "x"+str(len(self.treatment_name)+i+1)
+        self.common_causes_map = {
+            common_causes_order[i]: f"x{str(len(self.treatment_name)+i+1)}"
+            for i in range(len(common_causes_order))
+        }
 
         # benchmark_common_causes: stores variable names in terms of regression model variables
         benchmark_common_causes = parse_state(benchmark_common_causes)
@@ -92,13 +91,11 @@ class LinearSensitivityAnalyzer:
         """
 
         features = self.estimator._observed_common_causes.copy()
-        treatment_df = self.estimator._treatment.copy() 
+        treatment_df = self.estimator._treatment.copy()
         features = sm.tools.add_constant(features)
         features.rename(columns = self.common_causes_map, inplace = True)
         model = sm.OLS(treatment_df, features)
-        estimator_model = model.fit()
-        
-        return estimator_model
+        return model.fit()
 
     
     def partial_r2_func(self, estimator_model = None, treatment = None):
@@ -184,17 +181,15 @@ class LinearSensitivityAnalyzer:
         bias_adjusted_upper_CI = bias_adjusted_estimate - num_se * bias_adjusted_se
         bias_adjusted_lower_CI = bias_adjusted_estimate + num_se * bias_adjusted_se
 
-        benchmarking_results ={
-                'r2tu_w': r2tu_w,
-                'r2yu_tw': r2yu_tw,
-                'bias_adjusted_estimate': bias_adjusted_estimate,
-                'bias_adjusted_se': bias_adjusted_se,
-                'bias_adjusted_t': bias_adjusted_t,
-                'bias_adjusted_lower_CI': bias_adjusted_lower_CI,
-                'bias_adjusted_upper_CI': bias_adjusted_upper_CI
-            }
-
-        return benchmarking_results
+        return {
+            'r2tu_w': r2tu_w,
+            'r2yu_tw': r2yu_tw,
+            'bias_adjusted_estimate': bias_adjusted_estimate,
+            'bias_adjusted_se': bias_adjusted_se,
+            'bias_adjusted_t': bias_adjusted_t,
+            'bias_adjusted_lower_CI': bias_adjusted_lower_CI,
+            'bias_adjusted_upper_CI': bias_adjusted_upper_CI,
+        }
     
     def check_sensitivity(self, plot = True):
         """
@@ -222,7 +217,7 @@ class LinearSensitivityAnalyzer:
 
         self.t_stats = (self.estimate - self.null_hypothesis_effect ) / self.standard_error
         self.partial_f2 = self.t_stats ** 2 / self.degree_of_freedom
-        
+
         # build a new regression model by considering treatment variables as outcome 
         treatment_linear_model = self.treatment_regression()
 
@@ -234,11 +229,11 @@ class LinearSensitivityAnalyzer:
         for covariate in self.benchmark_common_causes:
             self.r2ywj_tw.append(self.partial_r2_func(self.estimator_model, covariate)) 
             self.r2twj_w.append(self.partial_r2_func(treatment_linear_model, covariate))
-        
+
         for i in range(len(self.benchmark_common_causes)):
             r2twj_w = self.r2twj_w[i]
             r2ywj_tw = self.r2ywj_tw[i]
-            
+
             # r2tu_w is the partial r^2 from regressing u on t after conditioning on w
             self.r2tu_w = self.frac_strength_treatment * (r2twj_w / (1 - r2twj_w))
             if(any(val >= 1 for val in self.r2tu_w)):
@@ -249,14 +244,13 @@ class LinearSensitivityAnalyzer:
                 raise ValueError("r2uwj_wt can not be >= 1. Try a lower frac_strength_treatment value")
 
             self.r2yu_tw = ((np.sqrt(self.frac_strength_outcome) + np.sqrt(r2uwj_wt)) / np.sqrt(1 - r2uwj_wt)) ** 2 * (r2ywj_tw / (1 - r2ywj_tw))
-            if(any(val > 1 for val in self.r2yu_tw)):
+            if (any(val > 1 for val in self.r2yu_tw)):
                 for i in range(len(self.r2yu_tw)):
-                    if self.r2yu_tw[i]>1:
-                        self.r2yu_tw[i]=1
+                    self.r2yu_tw[i] = min(self.r2yu_tw[i], 1)
                 self.logger.warning("Warning: r2yu_tw can not be > 1. Try a lower frac_strength_treatment. Setting r2yu_tw to 1")
 
-            #Compute bias adjusted terms
-        
+                #Compute bias adjusted terms
+
         self.benchmarking_results = self.compute_bias_adjusted(self.r2tu_w, self.r2yu_tw)
 
         if plot == True:
@@ -370,13 +364,9 @@ class LinearSensitivityAnalyzer:
         """
 
         #Plotting the contour plot
-        if plot_type == "estimate":
-            critical_value = 0 #default value of estimate
-        else:
-            critical_value = 2 #default t-value (usual approx for 95% CI)
-
+        critical_value = 0 if plot_type == "estimate" else 2
         fig, ax = plt.subplots(1, 1, figsize = plot_size )
-        ax.set_title("Sensitivity contour plot of %s"  %plot_type)
+        ax.set_title(f"Sensitivity contour plot of {plot_type}")
         ax.set_xlabel("Partial R^2 of confounder with treatment")
         ax.set_ylabel("Partial R^2 of confounder with outcome")
 
@@ -403,11 +393,11 @@ class LinearSensitivityAnalyzer:
             unadjusted_point_estimate = unadjusted_t
         else:
             raise ValueError("Current plotting method only supports 'estimate' and 't-value' ")
-        
+
         #Adding contours
         contour_plot = ax.contour(r2tu_w, r2yu_tw, contour_values, colors = contours_color, linewidths = contour_linewidths, linestyles = contour_linestyles)
         ax.clabel(contour_plot, inline = 1, fontsize = label_fontsize, colors = contours_label_color)
-        
+
         #Adding threshold contour line
         contour_plot = ax.contour(r2tu_w, r2yu_tw, contour_values, colors = critical_contour_color, linewidths = contour_linewidths, levels = [critical_value])
         ax.clabel(contour_plot,  [critical_value], inline = 1, fontsize = label_fontsize, colors = critical_label_color)
@@ -419,11 +409,19 @@ class LinearSensitivityAnalyzer:
         for i in range(len(self.frac_strength_treatment)):
             frac_strength_treatment = self.frac_strength_treatment[i]
             frac_strength_outcome = self.frac_strength_outcome[i]
-            if(frac_strength_treatment == frac_strength_outcome):
+            if (frac_strength_treatment == frac_strength_outcome):
                 signs = str(round(frac_strength_treatment,2))
             else:
-                signs = str(round(frac_strength_treatment,2)) + '/' + str(round(frac_strength_outcome,2))
-            label = str(i+1) + "  "+signs + ' X ' + str(self.original_benchmark_covariates) + " ({:1.2f}) ".format(bound_values[i])
+                signs = f'{str(round(frac_strength_treatment,2))}/{str(round(frac_strength_outcome,2))}'
+
+            label = (
+                f"{str(i+1)}  "
+                + signs
+                + ' X '
+                + str(self.original_benchmark_covariates)
+                + " ({:1.2f}) ".format(bound_values[i])
+            )
+
             ax.scatter(self.r2tu_w[i], self.r2yu_tw[i], color = adjusted_estimate_color, marker = adjusted_estimate_marker, label = label)
             ax.annotate(str(i+1), (self.r2tu_w[i] + 0.005, self.r2yu_tw[i] + 0.005 ))
 
@@ -431,8 +429,13 @@ class LinearSensitivityAnalyzer:
         plt.show()
 
     def __str__(self):
-        s = "Sensitivity Analysis to Unobserved Confounding using R^2 paramterization\n\n"
-        s += "Unadjusted Estimates of Treatment {0} :\n".format(self.original_treatment_name)
+        s = (
+            "Sensitivity Analysis to Unobserved Confounding using R^2 paramterization\n\n"
+            + "Unadjusted Estimates of Treatment {0} :\n".format(
+                self.original_treatment_name
+            )
+        )
+
         s += "Coefficient Estimate : {0}\n".format(self.estimate)
         s += "Degree of Freedom : {0}\n".format(self.degree_of_freedom)
         s += "Standard Error : {0}\n".format(self.standard_error)

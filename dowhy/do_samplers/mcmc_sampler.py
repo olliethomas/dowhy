@@ -39,19 +39,20 @@ class McmcSampler(DoSampler):
 
     def apply_parameters(self, g, df, initialization_trace=None):
         for node in nx.topological_sort(g):
-            parent_names = g.nodes()[node]["parent_names"]
-            if parent_names:
+            if parent_names := g.nodes()[node]["parent_names"]:
                 if not initialization_trace:
                     sd = np.array([df[node].std()] + (df[node].std() / df[parent_names].std()).tolist())
                     mu = np.array([df[node].std()] + (df[node].std() / df[parent_names].std()).tolist())
                     node_sd = df[node].std()
                 else:
-                    node_sd = initialization_trace["{}_sd".format(node)].mean()
-                    mu = initialization_trace["beta_{}".format(node)].mean(axis=0)
-                    sd = initialization_trace["beta_{}".format(node)].std(axis=0)
-                g.nodes()[node]["parameters"] = pm.Normal("beta_{}".format(node), mu=mu, sd=sd,
-                                                          shape=len(parent_names) + 1)
-                g.nodes()[node]["sd"] = pm.Exponential("{}_sd".format(node), lam=node_sd)
+                    node_sd = initialization_trace[f"{node}_sd"].mean()
+                    mu = initialization_trace[f"beta_{node}"].mean(axis=0)
+                    sd = initialization_trace[f"beta_{node}"].std(axis=0)
+                g.nodes()[node]["parameters"] = pm.Normal(
+                    f"beta_{node}", mu=mu, sd=sd, shape=len(parent_names) + 1
+                )
+
+                g.nodes()[node]["sd"] = pm.Exponential(f"{node}_sd", lam=node_sd)
         return g
 
     def build_bayesian_network(self, g, df):
@@ -62,15 +63,20 @@ class McmcSampler(DoSampler):
                                   g.nodes()[node]["parameters"][1:])
                 if g.nodes()[node]["variable_type"] == 'c':
                     sd = g.nodes()[node]["sd"]
-                    g.nodes()[node]["variable"] = pm.Normal("{}".format(node),
-                                                            mu=mu, sd=sd,
-                                                            observed=df[node])
+                    g.nodes()[node]["variable"] = pm.Normal(
+                        f"{node}", mu=mu, sd=sd, observed=df[node]
+                    )
+
                 elif g.nodes()[node]["variable_type"] == 'b':
-                    g.nodes()[node]["variable"] = pm.Bernoulli("{}".format(node),
-                                                               logit_p=mu,
-                                                               observed=df[node])
+                    g.nodes()[node]["variable"] = pm.Bernoulli(
+                        f"{node}", logit_p=mu, observed=df[node]
+                    )
+
                 else:
-                    raise Exception("Unrecognized variable type: {}".format(g.nodes()[node]["variable_type"]))
+                    raise Exception(
+                        f'Unrecognized variable type: {g.nodes()[node]["variable_type"]}'
+                    )
+
         return g
 
     def fit_causal_model(self, g, df, data_types, initialization_trace=None):
@@ -99,7 +105,7 @@ class McmcSampler(DoSampler):
 
     def do_x_surgery(self, g, x):
         for xi in x.keys():
-            g.remove_edges_from([(parent, child) for (parent, child) in g.in_edges(xi)])
+            g.remove_edges_from(list(g.in_edges(xi)))
             g.nodes()[xi]["parent_names"] = []
         return g
 

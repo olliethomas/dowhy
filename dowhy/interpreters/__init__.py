@@ -9,10 +9,13 @@ def get_class_object(method_name, *args, **kwargs):
         module_name = method_name
         class_name = string.capwords(method_name, "_").replace('_', '')
 
-        interpreter_module = import_module('.' + module_name, package="dowhy.interpreters")
+        interpreter_module = import_module(
+            f'.{module_name}', package="dowhy.interpreters"
+        )
+
         interpreter_class = getattr(interpreter_module, class_name)
         assert issubclass(interpreter_class, Interpreter)
 
     except (AttributeError, AssertionError, ImportError):
-        raise ImportError('{} is not an existing interpreter.'.format(method_name))
+        raise ImportError(f'{method_name} is not an existing interpreter.')
     return interpreter_class

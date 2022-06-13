@@ -71,12 +71,10 @@ class PropensityScoreStratificationEstimator(PropensityScoreEstimator):
                 self.propensity_score_model = linear_model.LogisticRegression()
             self.propensity_score_model.fit(self._observed_common_causes, self._treatment)
             self._data[self.propensity_score_column] = self.propensity_score_model.predict_proba(self._observed_common_causes)[:, 1]
+        elif self.propensity_score_column in self._data.columns:
+            self.logger.info(f"Using pre-computed propensity score incolumn {self.propensity_score_column}")
         else:
-            # check if the user provides the propensity score column
-            if self.propensity_score_column not in self._data.columns:
-                raise ValueError(f"Propensity score column {self.propensity_score_column} does not exist. Please specify the column name that has your pre-computed propensity score.")
-            else:
-                self.logger.info(f"Using pre-computed propensity score incolumn {self.propensity_score_column}")
+            raise ValueError(f"Propensity score column {self.propensity_score_column} does not exist. Please specify the column name that has your pre-computed propensity score.")
         clipped = None
         # Infer the right strata based on clipping threshold
         if self.num_strata == "auto":
@@ -87,7 +85,7 @@ class PropensityScoreStratificationEstimator(PropensityScoreEstimator):
             # analysis
             strata_found = False
             while not strata_found:
-                self.logger.info("'num_strata' selected as {}".format(num_strata))
+                self.logger.info(f"'num_strata' selected as {num_strata}")
                 try:
                     clipped = self._get_strata(num_strata, self.clipping_threshold)
                     num_ret_strata = clipped.groupby(['strata']).count().reset_index()
@@ -100,7 +98,10 @@ class PropensityScoreStratificationEstimator(PropensityScoreEstimator):
                         if num_strata < 2:
                             raise ValueError("Not enough data to generate at least two strata. This error may be due to a high value of 'clipping_threshold'.")
                 except ValueError:
-                    self.logger.info("No strata found with at least {} data points. Selecting fewer number of strata".format(self.clipping_threshold))
+                    self.logger.info(
+                        f"No strata found with at least {self.clipping_threshold} data points. Selecting fewer number of strata"
+                    )
+
                     num_strata = int(num_strata / 2)
                     if num_strata < 2:
                         raise ValueError("Not enough data to generate at least two strata. This error may be due to a high value of 'clipping_threshold'.")
@@ -135,15 +136,14 @@ class PropensityScoreStratificationEstimator(PropensityScoreEstimator):
         else:
             raise ValueError("Target units string value not supported")
 
-        # TODO - how can we add additional information into the returned estimate?
-        #        such as how much clipping was done, or per-strata info for debugging?
-        estimate = CausalEstimate(estimate=est,
-                                  control_value=self._control_value,
-                                  treatment_value=self._treatment_value,
-                                  target_estimand=self._target_estimand,
-                                  realized_estimand_expr=self.symbolic_estimator,
-                                  propensity_scores = self._data[self.propensity_score_column])
-        return estimate
+        return CausalEstimate(
+            estimate=est,
+            control_value=self._control_value,
+            treatment_value=self._treatment_value,
+            target_estimand=self._target_estimand,
+            realized_estimand_expr=self.symbolic_estimator,
+            propensity_scores=self._data[self.propensity_score_column],
+        )
 
     def _get_strata(self, num_strata, clipping_threshold):
         # sort the dataframe by propensity score

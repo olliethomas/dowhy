@@ -54,7 +54,7 @@ class IDExpression:
 
         string = ""
         if isinstance(estimator, IDExpression):
-            s = True if len(estimator.get_val(return_type="sum"))>0 else False
+            s = len(estimator.get_val(return_type="sum")) > 0
             if s:
                 sum_vars = "{" + ",".join(estimator.get_val(return_type="sum")) + "}"
                 string += prefix + "Sum over " + sum_vars + ":\n"
@@ -69,7 +69,7 @@ class IDExpression:
             outcome_vars = list(estimator['outcome_vars'])
             condition_vars = list(estimator['condition_vars'])
             string += prefix + "Predictor: P(" + ",".join(outcome_vars)
-            if len(condition_vars)>0:
+            if condition_vars:
                 string += "|" + ",".join(condition_vars)
             string += ")\n"
         if start:
@@ -78,10 +78,7 @@ class IDExpression:
 
     def __str__(self):
         string = self._print_estimator(prefix="", estimator=self, start=True)
-        if string is None:
-            return "The graph is not identifiable."
-        else:
-            return string
+        return "The graph is not identifiable." if string is None else string
 
 class IDIdentifier(CausalIdentifier):
 
@@ -143,9 +140,7 @@ class IDIdentifier(CausalIdentifier):
         # If no action has been taken, the effect on Y is just the marginal of the observational distribution P(v) on Y.
         if len(treatment_names) == 0:
             identifier = IDExpression()
-            estimator = {}
-            estimator['outcome_vars'] = node_names
-            estimator['condition_vars'] = OrderedSet()
+            estimator = {'outcome_vars': node_names, 'condition_vars': OrderedSet()}
             identifier.add_product(estimator)
             identifier.add_sum(node_names.difference(outcome_names))
             estimators.add_product(identifier)

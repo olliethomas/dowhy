@@ -69,7 +69,6 @@ class CausalRefuter:
                 return self._variables_of_interest[:required_variables]
 
         elif type(required_variables) is list:
-
            # Check if all are select or deselect variables
             if all(variable[0] == '-' for variable in required_variables):
                 invert = True
@@ -77,12 +76,15 @@ class CausalRefuter:
             elif all(variable[0] != '-' for variable in required_variables):
                 invert = False
             else:
-                self.logger.error("{} has both select and delect variables".format(required_variables))
+                self.logger.error(f"{required_variables} has both select and delect variables")
                 raise ValueError("It appears that there are some select and deselect variables. Note you can either select or delect variables at a time, but not both")
 
             # Check if all the required_variables belong to confounders, instrumental variables or effect
             if set(required_variables) - set(self._variables_of_interest) != set([]):
-                self.logger.error("{} are not confounder, instrumental variable or effect modifier".format( list( set(required_variables) - set(self._variables_of_interest) ) ))
+                self.logger.error(
+                    f"{list(set(required_variables) - set(self._variables_of_interest))} are not confounder, instrumental variable or effect modifier"
+                )
+
                 raise ValueError("At least one of required_variables is not a valid variable name, or it is not a confounder, instrumental variable or effect modifier")
 
             if invert is False:
@@ -91,7 +93,10 @@ class CausalRefuter:
                 return list( set(self._variables_of_interest) - set(required_variables) )
 
         else:
-            self.logger.error("Incorrect type: {}. Expected an int,list or bool".format( type(required_variables) ) )
+            self.logger.error(
+                f"Incorrect type: {type(required_variables)}. Expected an int,list or bool"
+            )
+
             raise TypeError("Expected int, list or bool. Got an unexpected datatype")
 
     def test_significance(self, estimate, simulations, test_type='auto',significance_level=0.05):
@@ -161,12 +166,10 @@ class CausalRefuter:
         else:
             raise NotImplementedError
 
-        significance_dict = {
-                "p_value":p_value,
-                "is_statistically_significant": p_value <= significance_level
-                }
-
-        return significance_dict
+        return {
+            "p_value": p_value,
+            "is_statistically_significant": p_value <= significance_level,
+        }
 
     def perform_bootstrap_test(self, estimate, simulations):
 
@@ -175,7 +178,7 @@ class CausalRefuter:
         # Sort the simulations
         simulations.sort()
         # Obtain the median value
-        median_refute_values= simulations[int(num_simulations/2)]
+        median_refute_values = simulations[num_simulations // 2]
 
         # Performing a two sided test
         if estimate.value > median_refute_values:
@@ -183,14 +186,12 @@ class CausalRefuter:
             # We select side to be left as we want to find the first value that matches
             estimate_index = np.searchsorted(simulations, estimate.value, side="left")
             # We subtact 1 as we are finding the value from the right tail
-            p_value = 1 - (estimate_index/ num_simulations)
+            return 1 - (estimate_index/ num_simulations)
         else:
             # We take the side to be right as we want to find the last index that matches
             estimate_index = np.searchsorted(simulations, estimate.value, side="right")
             # We get the probability with respect to the left tail.
-            p_value = estimate_index / num_simulations
-
-        return p_value
+            return estimate_index / num_simulations
 
     def perform_normal_distribution_test(self, estimate, simulations):
         # Get the mean for the simulations
@@ -201,12 +202,7 @@ class CausalRefuter:
         z_score = (estimate.value - mean_refute_values)/ std_dev_refute_values
 
 
-        if z_score > 0: # Right Tail
-            p_value = 1 - st.norm.cdf(z_score)
-        else: # Left Tail
-            p_value = st.norm.cdf(z_score)
-
-        return p_value
+        return 1 - st.norm.cdf(z_score) if z_score > 0 else st.norm.cdf(z_score)
 
     def refute_estimate(self):
         raise NotImplementedError

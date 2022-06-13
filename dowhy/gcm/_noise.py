@@ -95,9 +95,9 @@ def _get_exact_noise_dependent_function(causal_model: StructuralCausalModel,
     nodes_order = list(nx.topological_sort(causal_model.graph))
 
     def predict_method(noise_samples: np.ndarray) -> np.ndarray:
-        return compute_data_from_noise(causal_model,
-                                       pd.DataFrame(noise_samples,
-                                                    columns=[x for x in nodes_order]))[target_node].to_numpy()
+        return compute_data_from_noise(
+            causal_model, pd.DataFrame(noise_samples, columns=list(nodes_order))
+        )[target_node].to_numpy()
 
     return predict_method, nodes_order
 

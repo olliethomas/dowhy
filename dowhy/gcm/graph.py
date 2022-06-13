@@ -112,7 +112,7 @@ class InvertibleFunctionalCausalModel(FunctionalCausalModel, ABC):
 
 
 def is_root_node(causal_graph: DirectedGraph, node: Any) -> bool:
-    return list(causal_graph.predecessors(node)) == []
+    return not list(causal_graph.predecessors(node))
 
 
 def get_ordered_predecessors(causal_graph: DirectedGraph, node: Any) -> List[Any]:
@@ -184,9 +184,9 @@ def validate_node_has_causal_model(causal_graph: HasNodes, node: Any) -> None:
     validate_node_in_graph(causal_graph, node)
 
     if CAUSAL_MECHANISM not in causal_graph.nodes[node]:
-        raise ValueError("Node %s has no assigned causal mechanism!" % node)
+        raise ValueError(f"Node {node} has no assigned causal mechanism!")
 
 
 def validate_node_in_graph(causal_graph: HasNodes, node: Any) -> None:
     if node not in causal_graph.nodes:
-        raise ValueError("Node %s can not be found in the given graph!" % node)
+        raise ValueError(f"Node {node} can not be found in the given graph!")

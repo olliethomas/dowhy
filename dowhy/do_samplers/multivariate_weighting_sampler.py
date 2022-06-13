@@ -42,5 +42,4 @@ class MultivariateWeightingSampler(DoSampler):
         self._df.index = self._data.index
 
     def compute_weights(self):
-        weights = 1. / self._df['state_propensity']
-        return weights
+        return 1. / self._df['state_propensity']

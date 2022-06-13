@@ -17,5 +17,4 @@ class PCAReducer(DimensionalityReducer):
         if self._do_standardize:
             data = scale(self._data, axis=0)
         pca_model = PCA(n_components=self._ndims)
-        reduced_data = pca_model.fit_transform(data)
-        return reduced_data
+        return pca_model.fit_transform(data)

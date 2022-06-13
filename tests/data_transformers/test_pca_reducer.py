@@ -14,8 +14,7 @@ def feature_matrix():
     cov_mat = np.ones((num_features, num_features))
     cov_mat[0, 1] = 0.5
     cov_mat[1, 0] = 0.5
-    X = np.random.multivariate_normal(means, cov_mat, num_samples)
-    return X
+    return np.random.multivariate_normal(means, cov_mat, num_samples)
 
 
 class TestPCAReducer:

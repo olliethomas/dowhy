@@ -270,11 +270,7 @@ def _kci(X: np.ndarray,
     w = (empirical_kernel_map_y_z[:, None]
          * empirical_kernel_map_xz_z[..., None]).reshape(empirical_kernel_map_y_z.shape[0], -1)
 
-    if size_w > n:
-        ww_prod = w @ w.T
-    else:
-        ww_prod = w.T @ w
-
+    ww_prod = w @ w.T if size_w > n else w.T @ w
     return _estimate_p_value(ww_prod, statistic)
 
 
@@ -288,10 +284,12 @@ def _fast_centering(k: np.ndarray) -> np.ndarray:
     :return: centered kernel matrix of size nxn
     """
     n = len(k)
-    k_c = (k - 1 / n * np.outer(np.ones(n), np.sum(k, axis=0))
-           - 1 / n * np.outer(np.sum(k, axis=1), np.ones(n))
-           + 1 / n ** 2 * np.sum(k) * np.ones((n, n)))
-    return k_c
+    return (
+        k
+        - 1 / n * np.outer(np.ones(n), np.sum(k, axis=0))
+        - 1 / n * np.outer(np.sum(k, axis=1), np.ones(n))
+        + 1 / n**2 * np.sum(k) * np.ones((n, n))
+    )
 
 
 def _hsic(X: np.ndarray,
@@ -353,9 +351,7 @@ def _hsic(X: np.ndarray,
     al = m_hsic ** 2 / var_hsic
     bet = var_hsic * n / m_hsic
 
-    p_value = 1 - gamma.cdf(test_statistic, al, scale=bet)
-
-    return p_value
+    return 1 - gamma.cdf(test_statistic, al, scale=bet)
 
 
 def _filter_out_small_eigen_values_and_vectors(eigen_values: np.ndarray,
@@ -415,11 +411,19 @@ def _rit(X: np.ndarray, Y: np.ndarray,
         random_features_x = scale(approx_kernel(X_samples, num_random_features_X))
         random_features_y = scale(approx_kernel(Y_samples, num_random_features_Y))
 
-        permutation_results_of_statistic = []
-        for i in range(num_permutations):
-            permutation_results_of_statistic.append(_estimate_rit_statistic(
-                random_features_x[np.random.choice(random_features_x.shape[0],
-                                                   random_features_x.shape[0], replace=False)], random_features_y))
+        permutation_results_of_statistic = [
+            _estimate_rit_statistic(
+                random_features_x[
+                    np.random.choice(
+                        random_features_x.shape[0],
+                        random_features_x.shape[0],
+                        replace=False,
+                    )
+                ],
+                random_features_y,
+            )
+            for _ in range(num_permutations)
+        ]
 
         return 1 - (np.sum(_estimate_rit_statistic(random_features_x, random_features_y)
                            > permutation_results_of_statistic) / len(permutation_results_of_statistic))
@@ -489,11 +493,17 @@ def _rcit(X: np.ndarray, Y: np.ndarray, Z: np.ndarray,
         # Estimate test statistic multiple times on different permutations of the data. The p-value is then the
         # probability (i.e. fraction) of obtaining a test statistic that is greater than statistic on the non-permuted
         # data.
-        permutation_results_of_statistic = []
-        for i in range(num_permutations):
-            permutation_results_of_statistic.append(_estimate_rit_statistic(
-                residual_x[np.random.choice(residual_x.shape[0],
-                                            residual_x.shape[0], replace=False)], residual_y))
+        permutation_results_of_statistic = [
+            _estimate_rit_statistic(
+                residual_x[
+                    np.random.choice(
+                        residual_x.shape[0], residual_x.shape[0], replace=False
+                    )
+                ],
+                residual_y,
+            )
+            for _ in range(num_permutations)
+        ]
 
         return 1 - (np.sum(_estimate_rit_statistic(residual_x, residual_y) > permutation_results_of_statistic)
                     / len(permutation_results_of_statistic))

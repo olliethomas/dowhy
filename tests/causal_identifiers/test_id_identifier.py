@@ -92,10 +92,10 @@ class TestIDIdentifier(object):
         set_c = set(identified_estimand._product[0]._product[1]._product[0]['outcome_vars']._set)
         set_d = set(identified_estimand._product[0]._product[1]._product[0]['condition_vars']._set)
         assert identified_estimand._product[0]._sum == ['X1']
-        assert len(set_a.difference({'Y'})) == 0
-        assert len(set_b.difference({'X1', 'X2', 'T'})) == 0
-        assert len(set_c.difference({'X1'})) == 0
-        assert len(set_d) == 0    
+        assert not set_a.difference({'Y'})
+        assert not set_b.difference({'X1', 'X2', 'T'})
+        assert not set_c.difference({'X1'})
+        assert not set_d    
 
     def test_6(self):
         treatment = "T"

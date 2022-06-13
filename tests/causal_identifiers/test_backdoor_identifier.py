@@ -20,12 +20,12 @@ class TestBackdoorIdentification(object):
         ]
 
         assert (
-            (len(backdoor_sets) == 0 and len(biased_sets) == 0) # No biased sets exist and that's expected.
-            or
-            all([
+            not backdoor_sets
+            and len(biased_sets) == 0
+            or all(
                 set(biased_backdoor_set) not in backdoor_sets
                 for biased_backdoor_set in biased_sets
-            ]) # No sets that would induce biased results are present in the solution.
+            )
         )
 
     def test_identify_backdoor_unobserved_not_in_backdoor_set(self, example_graph_solution: IdentificationTestGraphSolution):
@@ -40,7 +40,11 @@ class TestBackdoorIdentification(object):
             if len(backdoor_result_dict["backdoor_set"]) > 0
         ]
 
-        assert all([variable in observed_variables for backdoor_set in backdoor_sets for variable in backdoor_set]) # All variables used in the backdoor sets must be observed.
+        assert all(
+            variable in observed_variables
+            for backdoor_set in backdoor_sets
+            for variable in backdoor_set
+        )
 
     def test_identify_backdoor_minimal_adjustment(self, example_graph_solution: IdentificationTestGraphSolution):
         graph = example_graph_solution.graph
@@ -54,12 +58,12 @@ class TestBackdoorIdentification(object):
         ]
 
         assert (
-            ((len(backdoor_sets) == 0) and (len(expected_sets) == 0)) # No adjustments exist and that's expected.
-            or
-            all([
+            not backdoor_sets
+            and len(expected_sets) == 0
+            or all(
                 set(expected_set) in backdoor_sets
                 for expected_set in expected_sets
-            ])
+            )
         )
 
     def test_identify_backdoor_maximal_adjustment(self, example_graph_solution: IdentificationTestGraphSolution):
@@ -75,10 +79,10 @@ class TestBackdoorIdentification(object):
         ]
         print(backdoor_sets, expected_sets, example_graph_solution.graph_str)
         assert (
-            ((len(backdoor_sets) == 0) and (len(expected_sets) == 0)) # No adjustments exist and that's expected.
-            or
-            all([
+            not backdoor_sets
+            and len(expected_sets) == 0
+            or all(
                 set(expected_set) in backdoor_sets
                 for expected_set in expected_sets
-            ])
+            )
         )

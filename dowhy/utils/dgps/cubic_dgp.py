@@ -12,10 +12,7 @@ class CubicDataGeneratingProcess(DataGeneratingProcess):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.auto_gen = False
-
-        if self.weights == {} and self.bias == {}:
-            self.auto_gen = True
+        self.auto_gen = self.weights == {} and self.bias == {}
 
     def generate_data(self, sample_size):
         self.weights = {}

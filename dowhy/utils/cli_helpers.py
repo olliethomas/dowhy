@@ -20,7 +20,7 @@ def query_yes_no(question, default=True):
         False: "[y/N]"
     }
     default_str = default_dict[default]
-    prompt_str = "%s %s " % (question, default_str)
+    prompt_str = f"{question} {default_str} "
     while True:
         choice = input(prompt_str).lower()
         if not choice and default is not None:

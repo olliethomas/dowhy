@@ -38,7 +38,7 @@ class ProbabilisticCausalModel:
                           :class:`~dowhy.gcm.graph.ConditionalStochasticModel`.
         """
         if node not in self.graph.nodes:
-            raise ValueError("Node %s can not be found in the given graph!" % node)
+            raise ValueError(f"Node {node} can not be found in the given graph!")
         self.graph.nodes[node][CAUSAL_MECHANISM] = mechanism
 
     def causal_mechanism(self, node: Any) -> Union[StochasticModel, ConditionalStochasticModel]:

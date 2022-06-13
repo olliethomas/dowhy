@@ -29,7 +29,7 @@ class Econml(CausalEstimator):
         # parameters to create an object of this class
         args_dict = {k: v for k, v in locals().items()
                      if k not in type(self)._STD_INIT_ARGS}
-        args_dict.update(kwargs)
+        args_dict |= kwargs
         super().__init__(*args, **args_dict)
         self._econml_methodname = econml_methodname
         self.logger.info("INFO: Using EconML Estimator")
@@ -41,8 +41,11 @@ class Econml(CausalEstimator):
             effect_modifier_names = []
             if self._effect_modifier_names is not None:
                 effect_modifier_names = self._effect_modifier_names.copy()
-            w_diff_x = [w for w in self._observed_common_causes_names if w not in effect_modifier_names]
-            if len(w_diff_x) >0:
+            if w_diff_x := [
+                w
+                for w in self._observed_common_causes_names
+                if w not in effect_modifier_names
+            ]:
                 self.logger.warn("Concatenating common_causes and effect_modifiers and providing a single list of variables to metalearner estimator method, " + class_name + ". EconML metalearners accept a single X argument.")
                 effect_modifier_names.extend(w_diff_x)
                 # Override the effect_modifiers set in CausalEstimator.__init__()
@@ -83,22 +86,21 @@ class Econml(CausalEstimator):
             estimator_class = getattr(estimator_module, class_name)
 
         except (AttributeError, AssertionError, ImportError):
-            raise ImportError('Error loading {}.{}. Double-check the method name and ensure that all econml dependencies are installed.'.format(module_name, class_name))
+            raise ImportError(
+                f'Error loading {module_name}.{class_name}. Double-check the method name and ensure that all econml dependencies are installed.'
+            )
+
         return estimator_class
 
     def _estimate_effect(self):
         n_samples = self._treatment.shape[0]
-        X = None  # Effect modifiers
         W = None  # common causes/ confounders
-        Z = None  # Instruments
         Y = self._outcome
         T = self._treatment
-        if self._effect_modifiers is not None:
-            X = self._effect_modifiers
+        X = self._effect_modifiers if self._effect_modifiers is not None else None
         if self._observed_common_causes_names:
             W = self._observed_common_causes
-        if self.estimating_instrument_names:
-            Z = self._estimating_instruments
+        Z = self._estimating_instruments if self.estimating_instrument_names else None
         named_data_args = {'Y': Y, 'T': T, 'X': X, 'W': W, 'Z': Z}
 
         if self.estimator is None:
@@ -110,8 +112,11 @@ class Econml(CausalEstimator):
             # As of v0.9, econml has some kewyord only arguments
             estimator_named_args = estimator_argspec.args + estimator_argspec.kwonlyargs
             estimator_data_args = {
-                arg: named_data_args[arg] for arg in named_data_args.keys() if arg in estimator_named_args
-                }
+                arg: named_data_args[arg]
+                for arg in named_data_args
+                if arg in estimator_named_args
+            }
+
             if self.method_params["fit_params"] is not False:
                 self.estimator.fit(**estimator_data_args,
                                    **self.method_params["fit_params"])
@@ -142,15 +147,16 @@ class Econml(CausalEstimator):
             self.effect_intervals = self.estimator.effect_interval(
                     X_test, T0=T0_test, T1=T1_test,
                     alpha=1-self.confidence_level)
-        estimate = CausalEstimate(estimate=ate,
-                                  control_value=self._control_value,
-                                  treatment_value=self._treatment_value,
-                                  target_estimand=self._target_estimand,
-                                  realized_estimand_expr=self.symbolic_estimator,
-                                  cate_estimates=est,
-                                  effect_intervals=self.effect_intervals,
-                                  _estimator_object=self.estimator)
-        return estimate
+        return CausalEstimate(
+            estimate=ate,
+            control_value=self._control_value,
+            treatment_value=self._treatment_value,
+            target_estimand=self._target_estimand,
+            realized_estimand_expr=self.symbolic_estimator,
+            cate_estimates=est,
+            effect_intervals=self.effect_intervals,
+            _estimator_object=self.estimator,
+        )
 
     def _estimate_confidence_intervals(self, confidence_level=None, method=None):
         """ Returns None if the confidence interval has not been calculated.

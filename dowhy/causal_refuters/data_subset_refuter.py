@@ -31,10 +31,10 @@ class DataSubsetRefuter(CausalRefuter):
     def refute_estimate(self):
 
         sample_estimates = np.zeros(self._num_simulations)
-        self.logger.info("Refutation over {} simulated datasets of size {} each"
-                         .format(self._subset_fraction
-                         ,self._subset_fraction*len(self._data.index) )
-                        )
+        self.logger.info(
+            f"Refutation over {self._subset_fraction} simulated datasets of size {self._subset_fraction * len(self._data.index)} each"
+        )
+
 
         for index in range(self._num_simulations):
             if self._random_state is None:
@@ -42,7 +42,7 @@ class DataSubsetRefuter(CausalRefuter):
             else:
                 new_data = self._data.sample(frac=self._subset_fraction,
                                             random_state=self._random_state)
-                                            
+
             new_estimator = CausalEstimator.get_estimator_object(new_data, self._target_estimand, self._estimate)
             new_effect = new_estimator.estimate_effect()
             sample_estimates[index] = new_effect.value

@@ -25,12 +25,12 @@ class Causalml(CausalEstimator):
         # to create an object of this class
         args_dict = {k: v for k, v in locals().items()
                      if k not in type(self)._STD_INIT_ARGS}
-        args_dict.update(kwargs)
+        args_dict |= kwargs
         super().__init__(*args, **args_dict)
         self._causalml_methodname = causalml_methodname
         # Add the identification method used in the estimator
         self.identifier_method = self._target_estimand.identifier_method
-        self.logger.debug("The identifier method used {}".format(self.identifier_method))
+        self.logger.debug(f"The identifier method used {self.identifier_method}")
 
         # Check the backdoor variables being used
         self.logger.debug("Back-door variables used:" +
@@ -79,7 +79,10 @@ class Causalml(CausalEstimator):
             estimator_class = getattr(estimator_module, class_name)
 
         except (AttributeError, AssertionError, ImportError):
-            raise ImportError('Error loading {}.{}. Double-check the method name and ensure that all causalml dependencies are installed.'.format(module_name, class_name))
+            raise ImportError(
+                f'Error loading {module_name}.{class_name}. Double-check the method name and ensure that all causalml dependencies are installed.'
+            )
+
         return estimator_class
 
     def _estimate_effect(self):
@@ -98,29 +101,25 @@ class Causalml(CausalEstimator):
         }
 
         arg_names = inspect.getfullargspec(self.estimator.estimate_ate)[0]
-        matched_args = {
-            arg: func_args[arg] for arg in func_args.keys() if arg in arg_names
-        }
+        matched_args = {arg: func_args[arg] for arg in func_args if arg in arg_names}
         print(matched_args)
         value_tuple = self.estimator.estimate_ate(**matched_args)
 
         # For CATEs
         arg_names = inspect.getfullargspec(self.estimator.fit_predict)[0]
-        matched_args = {
-            arg: func_args[arg] for arg in func_args.keys() if arg in arg_names
-        }
+        matched_args = {arg: func_args[arg] for arg in func_args if arg in arg_names}
         cate_estimates = self.estimator.fit_predict(**matched_args)
 
-        estimate = CausalEstimate(estimate=value_tuple[0],
-                                  control_value=self._control_value,
-                                  treatment_value=self._treatment_value,
-                                  target_estimand=self._target_estimand,
-                                  realized_estimand_expr=self.symbolic_estimator,
-                                  cate_estimates = cate_estimates,
-                                  effect_intervals=(value_tuple[1],value_tuple[2]),
-                                  _estimator_object=self.estimator)
-
-        return estimate
+        return CausalEstimate(
+            estimate=value_tuple[0],
+            control_value=self._control_value,
+            treatment_value=self._treatment_value,
+            target_estimand=self._target_estimand,
+            realized_estimand_expr=self.symbolic_estimator,
+            cate_estimates=cate_estimates,
+            effect_intervals=(value_tuple[1], value_tuple[2]),
+            _estimator_object=self.estimator,
+        )
 
 
     def construct_symbolic_estimator(self, estimand):

@@ -78,7 +78,7 @@ class TestAddUnobservedCommonCauseRefuter(object):
     @patch("matplotlib.pyplot.figure")
     def test_linear_sensitivity_with_confounders(self, mock_fig,estimator_method,
             effect_strength_on_t, benchmark_common_causes, simulated_method_name):
-        np.random.seed(100) 
+        np.random.seed(100)
         data = dowhy.datasets.linear_dataset( beta = 10,
                                       num_common_causes = 7,
                                       num_samples = 500,
@@ -103,16 +103,15 @@ class TestAddUnobservedCommonCauseRefuter(object):
                                simulated_method_name = simulated_method_name, 
                                benchmark_common_causes = benchmark_common_causes,
                                effect_fraction_on_treatment = effect_strength_on_t)
-        
+
+        bias_adjusted_estimate = refute.benchmarking_results['bias_adjusted_estimate']
         if refute.confounder_increases_estimate == True:
-                bias_adjusted_estimate = refute.benchmarking_results['bias_adjusted_estimate']
-                assert all(estimate <= refute.estimate for estimate in bias_adjusted_estimate) #if confounder_increases_estimate is True, adjusted estimate should be lower than original estimate
+            assert all(estimate <= refute.estimate for estimate in bias_adjusted_estimate) #if confounder_increases_estimate is True, adjusted estimate should be lower than original estimate
         else:
-                bias_adjusted_estimate = refute.benchmarking_results['bias_adjusted_estimate']
-                assert all(estimate >= refute.estimate for estimate in bias_adjusted_estimate)
+            assert all(estimate >= refute.estimate for estimate in bias_adjusted_estimate)
 
         #check if all partial R^2 values are between 0 and 1
-        assert all((val >= 0 and val <=1) for val in refute.benchmarking_results['r2tu_w']) 
+        assert all((val >= 0 and val <=1) for val in refute.benchmarking_results['r2tu_w'])
         assert all((val >= 0 and val <=1) for val in refute.benchmarking_results['r2yu_tw'])
         assert  refute.stats['r2yt_w'] >= 0 and refute.stats['r2yt_w'] <= 1
 
@@ -165,7 +164,7 @@ class TestAddUnobservedCommonCauseRefuter(object):
     @patch("matplotlib.pyplot.figure")
     def test_linear_sensitivity_dataset_without_confounders(self, mock_fig,estimator_method,
             effect_strength_on_t, benchmark_common_causes, simulated_method_name, rvalue_threshold):
-        np.random.seed(100) 
+        np.random.seed(100)
         data = dowhy.datasets.linear_dataset( beta = 10,
                                       num_common_causes = 7,
                                       num_samples = 500,
@@ -189,21 +188,20 @@ class TestAddUnobservedCommonCauseRefuter(object):
                                simulated_method_name = simulated_method_name, 
                                benchmark_common_causes = benchmark_common_causes,
                                effect_fraction_on_treatment = effect_strength_on_t)
-        
+
+        bias_adjusted_estimate = refute2.benchmarking_results['bias_adjusted_estimate']
         if refute2.confounder_increases_estimate == True:
-                bias_adjusted_estimate = refute2.benchmarking_results['bias_adjusted_estimate']
-                assert all(estimate <= refute2.estimate for estimate in bias_adjusted_estimate) #if confounder_increases_estimate is True, adjusted estimate should be lower than original estimate
+            assert all(estimate <= refute2.estimate for estimate in bias_adjusted_estimate) #if confounder_increases_estimate is True, adjusted estimate should be lower than original estimate
         else:
-                bias_adjusted_estimate = refute2.benchmarking_results['bias_adjusted_estimate']
-                assert all(estimate >= refute2.estimate for estimate in bias_adjusted_estimate)
+            assert all(estimate >= refute2.estimate for estimate in bias_adjusted_estimate)
 
         #check if all partial R^2 values are between 0 and 1
-        assert all((val >= 0 and val <=1) for val in refute2.benchmarking_results['r2tu_w']) 
+        assert all((val >= 0 and val <=1) for val in refute2.benchmarking_results['r2tu_w'])
         assert all((val >= 0 and val <=1) for val in refute2.benchmarking_results['r2yu_tw'])
         assert  refute2.stats['r2yt_w'] >= 0 and refute2.stats['r2yt_w'] <= 1
-        
+
         print(refute2.stats['robustness_value'])
         #for a dataset with no confounders, the robustness value should be higher than a given threshold (0.95 in our case)
-        assert refute2.stats['robustness_value'] >= rvalue_threshold and refute2.stats['robustness_value'] <= 1 
+        assert refute2.stats['robustness_value'] >= rvalue_threshold and refute2.stats['robustness_value'] <= 1
         assert mock_fig.call_count > 0  # we patched figure plotting call to avoid drawing plots during tests
     

@@ -103,11 +103,7 @@ class OrderedSet:
 
     def __str__(self):
         elements = [str(i) for i in self]
-        string = "OrderedSet(" + ",".join(elements) + ")"
-        return string
+        return "OrderedSet(" + ",".join(elements) + ")"
     
     def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return False
-        
-        return self._set == other._set
+        return self._set == other._set if isinstance(other, self.__class__) else False

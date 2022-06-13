@@ -33,7 +33,7 @@ class RegressionDiscontinuityEstimator(CausalEstimator):
         # to create an object of this class
         args_dict = {k: v for k, v in locals().items()
                      if k not in type(self)._STD_INIT_ARGS}
-        args_dict.update(kwargs)
+        args_dict |= kwargs
         super().__init__(*args, **args_dict)
         self.logger.info("Using Regression Discontinuity Estimator")
         self.rd_variable_name = rd_variable_name
@@ -65,8 +65,7 @@ class RegressionDiscontinuityEstimator(CausalEstimator):
             test_significance=self._significance_test,
             iv_instrument_name='local_rd_variable'
         )
-        est = iv_estimator.estimate_effect()
-        return est
+        return iv_estimator.estimate_effect()
 
     def construct_symbolic_estimator(self, estimand):
         return ""

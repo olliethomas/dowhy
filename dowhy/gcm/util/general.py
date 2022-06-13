@@ -61,10 +61,7 @@ def convert_numpy_array_to_pandas_column(*args) -> Union[np.ndarray, List[np.nda
         if X.ndim == 0:
             return np.array([X])
 
-        if X.ndim > 1:
-            return list(X)
-        else:
-            return X
+        return list(X) if X.ndim > 1 else X
 
     result = [shaping(x) for x in args]
 
@@ -145,11 +142,11 @@ def is_categorical(X: np.ndarray) -> bool:
 
     status = True
     for column in range(X.shape[1]):
-        if (isinstance(X[0, column], int) or isinstance(X[0, column], float)) and np.isnan(X[0, column]):
+        if isinstance(X[0, column], (int, float)) and np.isnan(X[0, column]):
             raise ValueError("Input contains NaN values! This is currently not supported. "
                              "Consider imputing missing values.")
 
-        status &= (isinstance(X[0, column], str) or isinstance(X[0, column], bool))
+        status &= isinstance(X[0, column], (str, bool))
 
         if not status:
             break

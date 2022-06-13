@@ -76,7 +76,7 @@ class TestRefuter(object):
             print("Error in refuted estimate = {0} with tolerance {1}%. Estimated={2},After Refutation={3}".format(
                 error, self._error_tolerance * 100, ate_estimate.value, refute.new_effect)
             )
-            res = True if (error < abs(ate_estimate.value) * self._error_tolerance) else False
+            res = error < abs(ate_estimate.value) * self._error_tolerance
             assert res
 
         elif self.refuter_method == "placebo_treatment_refuter":
@@ -103,10 +103,10 @@ class TestRefuter(object):
 
             print(ref)
 
-            res = True if (error <  self._error_tolerance) else False
+            res = error < self._error_tolerance
             assert res
 
-        elif self.refuter_method == "data_subset_refuter":
+        elif self.refuter_method in ["data_subset_refuter", "bootstrap_refuter"]:
             if treatment_is_binary is True:
                 ref = model.refute_estimate(target_estimand,
                                         ate_estimate,
@@ -127,31 +127,7 @@ class TestRefuter(object):
 
             print(ref)
 
-            res = True if (error <  abs(ate_estimate.value)*self._error_tolerance) else False
-            assert res
-
-        elif self.refuter_method == "bootstrap_refuter":
-            if treatment_is_binary is True:
-                ref = model.refute_estimate(target_estimand,
-                                        ate_estimate,
-                                        method_name=self.refuter_method,
-                                        num_simulations=5
-                                        )
-            else:
-                ref = model.refute_estimate(target_estimand,
-                                            ate_estimate,
-                                            method_name=self.refuter_method
-                                            )
-
-            error =  abs(ref.new_effect - ate_estimate.value)
-
-            print("Error in the refuted estimate = {0} with tolerence {1}%. Estimated={2}, After Refutation={3}".format(
-                error, self._error_tolerance * 100, ate_estimate.value, ref.new_effect)
-            )
-
-            print(ref)
-
-            res = True if (error <  abs(ate_estimate.value)*self._error_tolerance) else False
+            res = error < abs(ate_estimate.value)*self._error_tolerance
             assert res
 
         elif self.refuter_method == "dummy_outcome_refuter":
@@ -185,7 +161,7 @@ class TestRefuter(object):
 
             print(ref)
 
-            res = True if (error <  self._error_tolerance) else False
+            res = error < self._error_tolerance
             assert res
 
     def binary_treatment_testsuite(self, num_samples=100000,num_common_causes=1,tests_to_run="all",

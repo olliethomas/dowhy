@@ -142,9 +142,7 @@ class PostNonlinearModel(InvertibleFunctionalCausalModel):
         return self._invertible_function.evaluate(predictions + noise_samples)
 
     def __str__(self) -> str:
-        return '%s with %s and an %s' % (self.__class__.__name__,
-                                         self._prediction_model.__class__.__name__,
-                                         self._invertible_function.__class__.__name__)
+        return f'{self.__class__.__name__} with {self._prediction_model.__class__.__name__} and an {self._invertible_function.__class__.__name__}'
 
     def clone(self):
         return PostNonlinearModel(prediction_model=self._prediction_model.clone(),

@@ -80,24 +80,27 @@ class CausalAccessor(object):
         if not stateful or method != self._method:
             self.reset()
         if not self._causal_model:
-            self._causal_model = CausalModel(self._obj,
-                                             [xi for xi in x.keys()],
-                                             outcome,
-                                             graph=dot_graph,
-                                             common_causes=common_causes,
-                                             instruments=None,
-                                             estimand_type=estimand_type,
-                                             proceed_when_unidentifiable=proceed_when_unidentifiable)
+            self._causal_model = CausalModel(
+                self._obj,
+                list(x.keys()),
+                outcome,
+                graph=dot_graph,
+                common_causes=common_causes,
+                instruments=None,
+                estimand_type=estimand_type,
+                proceed_when_unidentifiable=proceed_when_unidentifiable,
+            )
+
         #self._identified_estimand = self._causal_model.identify_effect()
 
         if not bool(variable_types): #check if the variables dictionary is empty
             variable_types = dict(self._obj.dtypes) #Convert the series containing data types to a dictionary
-            for key in variable_types.keys():
+            for key in variable_types:
                 variable_types[key] = self.convert_to_custom_type(variable_types[key].name) #Obtain the custom type corrosponding to each data type
 
         elif len(self._obj.columns) > len(variable_types):
             all_variables = dict(self._obj.dtypes)
-            for key in all_variables.keys():
+            for key in all_variables:
                 if key not in variable_types:
                     variable_types[key] = self.convert_to_custom_type(all_variables[key].name)
 
@@ -132,16 +135,14 @@ class CausalAccessor(object):
         Currently we have not added support for time.
         :param input_type: str: The datatype of a column within a DataFrame
         """
-        if 'int' in input_type:
-            return 'c'
-        elif 'float' in input_type:
+        if 'int' in input_type or 'float' in input_type:
             return 'c'
         elif 'bool' in input_type:
             return 'b'
         elif 'category' in input_type:
             return 'd'
         else:
-            raise Exception('{} format is not supported'.format(input_type))
+            raise Exception(f'{input_type} format is not supported')
 
     def parse_x(self, x):
         if type(x) == str:
@@ -150,5 +151,5 @@ class CausalAccessor(object):
             return {xi: None for xi in x}, True
         if type(x) == dict:
             return x, False
-        raise Exception('x format not recognized: {}'.format(type(x)))
+        raise Exception(f'x format not recognized: {type(x)}')
 

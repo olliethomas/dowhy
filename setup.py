@@ -5,6 +5,7 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
+
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
@@ -21,7 +22,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
 
 # Plotting packages are optional to install
 extras = ["plotting"]
-extras_require = dict()
+extras_require = {}
 for e in extras:
     req_file = "requirements-{0}.txt".format(e)
     with open(req_file) as f:

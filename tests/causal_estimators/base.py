@@ -75,7 +75,7 @@ class TestEstimator(object):
         print("Error in ATE estimate = {0} with tolerance {1}%. Estimated={2},True={3}".format(
             error, self._error_tolerance * 100, ate_estimate.value, true_ate)
         )
-        res = True if (error < abs(true_ate) * self._error_tolerance) else False
+        res = error < abs(true_ate) * self._error_tolerance
         assert res
         # Compute confidence intervals, standard error and significance tests
         if confidence_intervals:
@@ -142,7 +142,7 @@ class TestEstimator(object):
         print("Error in ATE estimate = {0} with tolerance {1}%. Estimated={2},True={3}".format(
             error, self._error_tolerance * 100, ate_estimate.value, true_ate)
         )
-        res = True if (error < true_ate * self._error_tolerance) else False
+        res = error < true_ate * self._error_tolerance
         assert res
 
 

@@ -58,7 +58,7 @@ class DataGeneratingProcess():
         return binary_treat_value.astype(float)
 
     def __str__(self):
-        rep = """
+        return """
         treatment:{}
         outcome:{}
         confounder: {}
@@ -68,7 +68,15 @@ class DataGeneratingProcess():
         seed: {}
         treatment_is_binary: {}
         percentile: {}
-        """.format(self.treatment, self.outcome, self.confounder, self.effect_modifier, self.weights, self.bias, self.seed, self.treatment_is_binary, self.percentile)
-
-        return rep
+        """.format(
+            self.treatment,
+            self.outcome,
+            self.confounder,
+            self.effect_modifier,
+            self.weights,
+            self.bias,
+            self.seed,
+            self.treatment_is_binary,
+            self.percentile,
+        )
 

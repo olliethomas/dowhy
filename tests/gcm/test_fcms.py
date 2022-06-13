@@ -32,7 +32,7 @@ def test_fit_causal_graph_using_post_nonlinear_models():
     target_values = test_parent_samples * 2 + 2
 
     mean_samples = np.zeros(target_values.shape)
-    for i in range(100):
+    for _ in range(100):
         mean_samples += scm.causal_mechanism('X1').draw_samples(test_parent_samples)
     mean_samples /= 100
 
@@ -90,7 +90,7 @@ def test_fit_causal_graph_using_additive_noise_model():
     target_values = test_parent_samples * 2 + 2
 
     mean_samples = np.zeros(target_values.shape)
-    for i in range(100):
+    for _ in range(100):
         mean_samples += scm.causal_mechanism('X1').draw_samples(test_parent_samples)
     mean_samples /= 100
 

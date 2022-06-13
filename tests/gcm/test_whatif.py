@@ -87,9 +87,9 @@ def test_interventional_samples_with_categorical_variables_draw():
     X2 = []
     for (x0, x1) in zip(X0, X1):
         if x1 == '0':
-            X2.append(x0 + 2 > 0)
+            X2.append(x0 > -2)
         else:
-            X2.append(x0 - 2 > 0)
+            X2.append(x0 > 2)
 
     X2 = np.array(X2).astype(str)
 

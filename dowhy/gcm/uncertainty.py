@@ -62,11 +62,7 @@ def estimate_gaussian_entropy(X: np.ndarray) -> float:
 def estimate_variance(X: np.ndarray) -> float:
     X = shape_into_2d(X)
 
-    if X.shape[1] > 1:
-        result = det(np.cov(X, rowvar=False))
-    else:
-        result = np.var(X)
-
+    result = det(np.cov(X, rowvar=False)) if X.shape[1] > 1 else np.var(X)
     # Extremely small values can somehow result in negative values.
     return max(0.0, result)
 

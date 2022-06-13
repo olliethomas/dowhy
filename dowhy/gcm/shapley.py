@@ -232,7 +232,7 @@ def _approximate_shapley_values_via_permutation_sampling(
 
     subsets_to_evaluate = set()
     all_permutations = []
-    for i in range(num_permutations):
+    for _ in range(num_permutations):
         permutation = np.random.choice(num_players, num_players, replace=False)
         all_permutations.append(permutation)
 
@@ -299,10 +299,10 @@ def _approximate_shapley_values_via_early_stopping(
 
             # The result for each subset is cached such that if a subset that has already been evaluated appears again,
             # we can take this result directly.
-            evaluated_subsets.update(_evaluate_set_function(set_func,
-                                                            subsets_to_evaluate,
-                                                            parallel,
-                                                            False))
+            evaluated_subsets |= _evaluate_set_function(
+                set_func, subsets_to_evaluate, parallel, False
+            )
+
 
             for permutation in permutations:
                 # To improve the runtime, multiple permutations are evaluated in each run.
@@ -383,7 +383,7 @@ def _create_subsets_and_weights_exact(num_players: int, high_weight: float) -> T
 
     for i, subset in enumerate(all_subsets):
         subset_size = np.sum(subset)
-        if subset_size == num_players or subset_size == 0:
+        if subset_size in [num_players, 0]:
             # Assigning a 'high' weight, since this resembles "infinity".
             weights[i] = high_weight
         else:
@@ -417,7 +417,7 @@ def _create_subsets_and_weights_approximation(num_players: int, high_weight: flo
 
     probabilities_of_subset_length = probabilities_of_subset_length / np.sum(probabilities_of_subset_length)
 
-    for i in range(num_subset_samples):
+    for _ in range(num_subset_samples):
         subset_as_tuple = _convert_list_of_indices_to_binary_vector_as_tuple(
             np.random.choice(num_players,
                              np.random.choice(num_players + 1, 1, p=probabilities_of_subset_length),

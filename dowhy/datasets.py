@@ -18,10 +18,7 @@ def sigmoid(x):
 
 def convert_to_binary(x, stochastic=True):
     p = sigmoid(x)
-    if stochastic:
-        return choice([0, 1], 1, p=[1-p, p])
-    else:
-        return int(p > 0.5)
+    return choice([0, 1], 1, p=[1-p, p]) if stochastic else int(p > 0.5)
 
 def stochastically_convert_to_three_level_categorical(x):
     p = sigmoid(x)
@@ -47,14 +44,21 @@ def convert_to_categorical(arr, num_vars, num_discrete_vars,
 
 def construct_col_names(name, num_vars, num_discrete_vars,
         num_discrete_levels, one_hot_encode):
-    colnames = [(name + str(i)) for i in range(0, num_vars - num_discrete_vars)]
+    colnames = [name + str(i) for i in range(num_vars - num_discrete_vars)]
     if one_hot_encode:
-        discrete_colnames =  [name+str(i) + "_" + str(j)
-                                for i in range(num_vars - num_discrete_vars, num_vars)
-                                    for j in range(0, num_discrete_levels)]
-        colnames = colnames + discrete_colnames
+        discrete_colnames = [
+            name + str(i) + "_" + str(j)
+            for i in range(num_vars - num_discrete_vars, num_vars)
+            for j in range(num_discrete_levels)
+        ]
+
+        colnames += discrete_colnames
     else:
-        colnames = colnames  + [(name + str(i)) for i in range(num_vars-num_discrete_vars, num_vars)]
+        colnames += [
+            (name + str(i))
+            for i in range(num_vars - num_discrete_vars, num_vars)
+        ]
+
 
     return colnames
 
@@ -144,15 +148,7 @@ def linear_dataset(beta, num_common_causes, num_samples, num_instruments=0,
 
     def _compute_y(t, W, X, FD, beta, c2, ce, cfd2, stddev_outcome_noise):
         y = np.random.normal(0,stddev_outcome_noise, num_samples)
-        if num_frontdoor_variables > 0:
-            y += FD @ cfd2
-        else:
-            # NOTE: We are assuming a linear relationship *even when t is categorical* and integer coded.
-            # For categorical t, this example dataset has the effect size for category 2 being exactly
-            # double the effect for category 1
-            # This could be changed at this stage by one-hot encoding t and using a custom beta that
-            # sets a different effect for each category {0, 1, 2}
-            y += t @ beta
+        y += FD @ cfd2 if num_frontdoor_variables > 0 else t @ beta
         if num_common_causes > 0:
             y += W @ c2
         if num_effect_modifiers > 0:
@@ -255,8 +251,7 @@ def simple_iv_dataset(beta, num_samples,
         t = np.vectorize(convert_to_binary)(t)
 
     def _compute_y(t, W, beta, c2):
-        y = t @ beta + W @ c2
-        return y
+        return t @ beta + W @ c2
     y = _compute_y(t, W, beta, c2)
 
     # creating data frame
@@ -306,7 +301,7 @@ def create_dot_graph(treatments, outcome, common_causes,
     dot_graph += " ".join([v + "-> " + outcome + ";" for v in common_causes])
     dot_graph += " ".join([v + "-> " + outcome + ";" for v in effect_modifiers])
     dot_graph += " ".join([v + "-> " + outcome + ";" for v in frontdoor_variables])
-    dot_graph = dot_graph + "}"
+    dot_graph += "}"
     # Adding edges between common causes and the frontdoor mediator
     for v1 in common_causes:
             dot_graph += " ".join([v1 + "-> " + v2 + ";" for v2 in frontdoor_variables])
@@ -344,7 +339,7 @@ def xy_dataset(num_samples, effect=True,
         sd_error=1):
     treatment = 'Treatment'
     outcome = 'Outcome'
-    common_causes = ['w'+str(i) for i in range(num_common_causes)]
+    common_causes = [f'w{str(i)}' for i in range(num_common_causes)]
     time_var = 's'
     # Error terms
     E1 = np.random.normal(loc=0, scale=sd_error, size=num_samples)
@@ -369,17 +364,10 @@ def xy_dataset(num_samples, effect=True,
     if is_linear:
         V = 6 + W0 + tterm +  E1
         Y = 6 + W0 + yterm + E2  # + (V-8)*(V-8)
-        if effect:
-            Y += V
-        else:
-            Y += (6 + W0)
     else:
         V = 6 + W0*W0 + tterm +  E1
         Y = 6 + W0*W0 + yterm + E2  # + (V-8)*(V-8)
-        if effect:
-            Y += V #/20 # divide by 10 to scale the value of Y to be comparable to V
-        else:
-            Y += (6 + W0)
+    Y += V if effect else (6 + W0)
     #else:
     #    V = 6 + W0 + tterm + E1
     #    Y = 12 + W0*W0 + W0*W0 + yterm + E2  # E2_new
@@ -393,7 +381,7 @@ def xy_dataset(num_samples, effect=True,
         for i in range(otherW.shape[1]):
             dat[common_causes[i+1]] = otherW[:,i]
     data = pd.DataFrame(data=dat)
-    ret_dict = {
+    return {
         "df": data,
         "treatment_name": treatment,
         "outcome_name": outcome,
@@ -404,16 +392,14 @@ def xy_dataset(num_samples, effect=True,
         "gml_graph": None,
         "ate": None,
     }
-    return ret_dict
 
 def create_discrete_column(num_samples,std_dev=1):
     #Generating a random normal distribution of integers
     x = np.arange(-5,6)
-    xU, xL = x + 0.5, x - 0.5 
+    xU, xL = x + 0.5, x - 0.5
     prob = ss.norm.cdf(xU, scale = std_dev) - ss.norm.cdf(xL, scale = std_dev)  #probability of selecting a number x is p(x-0.5 < x < x+0.5) where x is a normal random variable with mean 0 and standard deviation std_dev
     prob = prob / prob.sum() # normalize the probabilities so their sum is 1
-    nums = choice(a = x, size = num_samples, p = prob) #pick up an element 
-    return nums
+    return choice(a = x, size = num_samples, p = prob)
 
 def convert_continuous_to_discrete(arr):
     return arr.astype(int)
@@ -429,7 +415,7 @@ def generate_random_graph(n, max_iter = 10):
     See: https://datascience.oneoffcoder.com/generate-random-bbn.html 
     """
     g = get_simple_ordered_tree(n)
-    for it in range(max_iter):
+    for _ in range(max_iter):
         i, j = get_random_node_pair(n)
         if g.has_edge(i, j) is True:
             del_edge(i, j, g)
@@ -451,30 +437,27 @@ def dataset_from_random_graph(num_vars, num_samples=1000, prob_edge=0.3, random_
     :param prob_type_of_data : 3-element tuple containing the probability of data being discrete, binary and continuous respectively.
     :returns ret_dict : dictionary with information like dataframe, outcome, treatment, graph string and continuous, discrete and binary columns
     """
-    assert (sum(list(prob_type_of_data)) == 1.0) 
-    np.random.seed(100) 
+    assert (sum(list(prob_type_of_data)) == 1.0)
+    np.random.seed(100)
     DAG = generate_random_graph(n = num_vars)
     mapping = dict(zip(DAG, string.ascii_lowercase))
     DAG = nx.relabel_nodes(DAG, mapping)
-    all_nodes = list(DAG.nodes)
-    all_nodes.sort()
+    all_nodes = sorted(DAG.nodes)
     num_nodes = len(all_nodes)
-    changed = dict()
     discrete_cols = []
     continuous_cols = []
     binary_cols = []
     random_numbers_array = np.random.rand(num_nodes) #Random numbers between 0 to 1 to decide if that particular node will be discrete or continuous
 
-    for node in all_nodes:
-        changed[node] = False
+    changed = {node: False for node in all_nodes}
     df = pd.DataFrame()
-    currset = list()
+    currset = []
     counter = 0
 
     #Generating data for nodes which have no incoming edges
     for node in all_nodes:
         if DAG.in_degree(node) == 0:
-            x = random_numbers_array[counter]  
+            x = random_numbers_array[counter]
             counter+=1
             if x<=prob_type_of_data[0]:
                 df[node] = create_discrete_column(num_samples) #Generating discrete data
@@ -487,22 +470,20 @@ def dataset_from_random_graph(num_vars, num_samples=1000, prob_edge=0.3, random_
                 df[node] = np.vectorize(convert_to_binary)(nums) #Generating binary data
                 discrete_cols.append(node)
                 binary_cols.append(node)
-            successors = list(DAG.successors(node)) #Storing immediate successors for next level data generation
-            successors.sort()
+            successors = sorted(DAG.successors(node))
             currset.extend(successors)
             changed[node] = True 
 
     #"currset" variable currently has all the successors of the nodes which had no incoming edges
-    while len(currset) > 0:
-        cs = list() #Variable to store immediate children of nodes present in "currset"
+    while currset:
+        cs = []
         for node in currset: 
             predecessors = list(DAG.predecessors(node))  #Getting all the parent nodes on which current "node" depends on
             if changed[node] == False and all(changed[x] == True for x in predecessors): #Check if current "node" has not been processed yet and if all the parent nodes have been processed
-                successors = list(DAG.successors(node))
-                successors.sort()
+                successors = sorted(DAG.successors(node))
                 cs.extend(successors) #Storing immediate children for next level data generation
                 X = df[predecessors].to_numpy() #Using parent nodes data 
-                c = np.random.uniform(0,1,len(predecessors)) 
+                c = np.random.uniform(0,1,len(predecessors))
                 t = np.random.normal(0,1, num_samples)+ X@c #Using Linear Regression to generate data
                 changed[node] = True
                 x = random_numbers_array[counter]
@@ -520,27 +501,21 @@ def dataset_from_random_graph(num_vars, num_samples=1000, prob_edge=0.3, random_
                     binary_cols.append(node)
         currset = cs 
 
-    outcome  = None  
-    for node in all_nodes:
-        if DAG.out_degree(node) == 0:
-            outcome = node #Node which has no successors is outcome
-            break
-
-    treatments = list()
+    outcome = next((node for node in all_nodes if DAG.out_degree(node) == 0), None)
+    treatments = []
     for node in all_nodes:
         if DAG.in_degree(node) > 0:
             children = list(DAG.successors(node))
             if outcome in children:
                 treatments.append(node) #Node which causes outcome is treatment
-   
+
     gml_str = ("\n".join(nx.generate_gml(DAG)))
-    ret_dict = {
+    return {
         "df": df,
         "outcome_name": outcome,
         "treatment_name": treatments,
         "gml_graph": gml_str,
         "discrete_columns": discrete_cols,
         "continuous_columns": continuous_cols,
-        "binary_columns": binary_cols
+        "binary_columns": binary_cols,
     }
-    return ret_dict

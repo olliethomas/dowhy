@@ -69,12 +69,11 @@ def mechanism_change_test(target_original_data: np.ndarray,
 
     if parents_original_data is None:
         return independence_test(joint_target_samples, data_set_indices)
-    else:
-        parents_new_data: np.ndarray
-        joint_parent_data = np.vstack([shape_into_2d(parents_original_data[original_indices]),
-                                       shape_into_2d(parents_new_data[new_indices])])
+    parents_new_data: np.ndarray
+    joint_parent_data = np.vstack([shape_into_2d(parents_original_data[original_indices]),
+                                   shape_into_2d(parents_new_data[new_indices])])
 
-        return independence_test(joint_target_samples, data_set_indices, joint_parent_data)
+    return independence_test(joint_target_samples, data_set_indices, joint_parent_data)
 
 
 def distribution_change(causal_model: ProbabilisticCausalModel,

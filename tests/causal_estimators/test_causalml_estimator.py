@@ -11,17 +11,15 @@ from xgboost import XGBRegressor
 
 @pytest.fixture
 def init_data():
-    data = linear_dataset(
-            beta=10,
-            num_common_causes=4,
-            num_instruments=2,
-            num_effect_modifiers=2,
-            num_treatments=1,
-            num_samples=1000,
-            treatment_is_binary=True
-        )
-    
-    return data
+    return linear_dataset(
+        beta=10,
+        num_common_causes=4,
+        num_instruments=2,
+        num_effect_modifiers=2,
+        num_treatments=1,
+        num_samples=1000,
+        treatment_is_binary=True,
+    )
 
 @pytest.mark.use_fixtures("init_data")
 class TestCausalmlEstimator:

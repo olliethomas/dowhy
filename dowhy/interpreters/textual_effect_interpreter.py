@@ -23,13 +23,11 @@ class TextualEffectInterpreter(TextualInterpreter):
                 interpret_text += "Increasing the treatment variable(s) [{0}] from {1} to {2} causes an increase of {3} in the expected value of the outcome [{4}]".format(treatments_str, self.estimator._control_value, self.estimator._treatment_value, self.estimate.value, self.estimator._outcome_name)
             else:
                 raise NotImplementedError("Interpretation not supported yet for categorical treatments")
+        elif all(pd.api.types.is_numeric_dtype(tr_dtype) or pd.api.types.is_bool_dtype(tr_dtype) for tr_dtype in self.estimator._treatment.dtypes):
+            # Treatments are numeric or binary
+            interpret_text += "Increasing the treatment variable(s) [{0}] from {1} to {2} causes an increase of {3} in the expected value of the outcome [{4}]".format(treatments_str, self.estimator._control_value, self.estimator._treatment_value, self.estimate.value, self.estimator._outcome_name)
         else:
-            # Outcome is categorical
-            if all(pd.api.types.is_numeric_dtype(tr_dtype) or pd.api.types.is_bool_dtype(tr_dtype) for tr_dtype in self.estimator._treatment.dtypes):
-                # Treatments are numeric or binary
-                interpret_text += "Increasing the treatment variable(s) [{0}] from {1} to {2} causes an increase of {3} in the expected value of the outcome [{4}]".format(treatments_str, self.estimator._control_value, self.estimator._treatment_value, self.estimate.value, self.estimator._outcome_name)
-            else:
-                raise NotImplementedError("Interpretation not supported yet for categorical treatments")
+            raise NotImplementedError("Interpretation not supported yet for categorical treatments")
 
         interpret_text += ", over the data distribution/population represented by the dataset."
         self.show(interpret_text)

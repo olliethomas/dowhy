@@ -40,7 +40,7 @@ class TestPandasDoAPI(object):
         ate = (causal_df[causal_df.v == 1].mean() \
               - causal_df[causal_df.v == 0].mean())['y']
         error = np.abs(ate - data['ate'])
-        res = True if (error < data['ate'] * error_tolerance) else False
+        res = error < data['ate'] * error_tolerance
         print("Error in ATE estimate = {0} with tolerance {1}%. Estimated={2},True={3}".format(
             error, error_tolerance * 100, ate, data['ate'])
         )
@@ -78,7 +78,7 @@ class TestPandasDoAPI(object):
               - causal_df[causal_df.v == 0].mean())['y']
         print('ate', ate)
         error = np.abs(ate - data['ate'])
-        res = True if (error < data['ate'] * error_tolerance) else False
+        res = error < data['ate'] * error_tolerance
         print("Error in ATE estimate = {0} with tolerance {1}%. Estimated={2},True={3}".format(
             error, error_tolerance * 100, ate, data['ate'])
         )
@@ -115,7 +115,7 @@ class TestPandasDoAPI(object):
         ate = LinearRegression().fit(causal_df[['v']], causal_df['y']).coef_[0]
         print('ate', ate)
         error = np.abs(ate - data['ate'])
-        res = True if (error < data['ate'] * error_tolerance) else False
+        res = error < data['ate'] * error_tolerance
         print("Error in ATE estimate = {0} with tolerance {1}%. Estimated={2},True={3}".format(
             error, error_tolerance * 100, ate, data['ate'])
         )
@@ -152,7 +152,7 @@ class TestPandasDoAPI(object):
         ate = LinearRegression().fit(causal_df[['v']], causal_df['y']).coef_[0]
         print('ate', ate)
         error = np.abs(ate - data['ate'])
-        res = True if (error < data['ate'] * error_tolerance) else False
+        res = error < data['ate'] * error_tolerance
         print("Error in ATE estimate = {0} with tolerance {1}%. Estimated={2},True={3}".format(
             error, error_tolerance * 100, ate, data['ate'])
         )
@@ -177,7 +177,6 @@ class TestPandasDoAPI(object):
                         outcome='y',
                         proceed_when_unidentifiable=True,
                         common_causes=['W0']).groupby('v0').mean()
-        assert True
 
     @pytest.mark.parametrize(["N","variable_types"],
                             [(10000,{'v0': 'b', 'W0': 'c'}),])
@@ -193,7 +192,6 @@ class TestPandasDoAPI(object):
                         outcome='y',
                         proceed_when_unidentifiable=True,
                         common_causes=['W0']).groupby('v0').mean()
-        assert True
 
     @pytest.mark.parametrize(["N","variable_types"],
                             [(10000,{}),])
@@ -209,7 +207,6 @@ class TestPandasDoAPI(object):
                         outcome='y',
                         proceed_when_unidentifiable=True,
                         common_causes=['W0']).groupby('v0').mean()
-        assert True
 
     @pytest.mark.parametrize(["N","variable_types"],
                             [(1,{'v0': 'b', 'W0': 'c'}),])

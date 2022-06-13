@@ -62,7 +62,7 @@ class BootstrapRefuter(CausalRefuter):
         self._random_state = kwargs.pop("random_state", None)
 
         self.logger = logging.getLogger(__name__)
-        
+
         self._chosen_variables = self.choose_variables(required_variables)
 
         if self._chosen_variables is None:
@@ -73,12 +73,18 @@ class BootstrapRefuter(CausalRefuter):
 
         if self._probability_of_change is None:
             if self._noise > 1:
-                self.logger.error("Error in using noise:{} for Binary Flip. The value is greater than 1".format(self._noise))
+                self.logger.error(
+                    f"Error in using noise:{self._noise} for Binary Flip. The value is greater than 1"
+                )
+
                 raise ValueError("The value for Binary Flip cannot be greater than 1")
             else:
                 self._probability_of_change = self._noise
         elif self._probability_of_change > 1:
-            self.logger.error("The probability of flip is: {}, However, this value cannot be greater than 1".format(self._probability_of_change))
+            self.logger.error(
+                f"The probability of flip is: {self._probability_of_change}, However, this value cannot be greater than 1"
+            )
+
             raise ValueError("Probability of Flip cannot be greater than 1")
 
     
@@ -87,11 +93,11 @@ class BootstrapRefuter(CausalRefuter):
                 self.logger.warning("The sample size is larger than the population size")
 
         sample_estimates = np.zeros(self._num_simulations)
-        self.logger.info("Refutation over {} simulated datasets of size {} each"
-                         .format(self._num_simulations
-                         ,self._sample_size )
-                        ) 
-        
+        self.logger.info(
+            f"Refutation over {self._num_simulations} simulated datasets of size {self._sample_size} each"
+        )
+         
+
         for index in range(self._num_simulations):
             if self._random_state is None:
                 new_data = resample(self._data, 
@@ -107,17 +113,20 @@ class BootstrapRefuter(CausalRefuter):
                     if ('float' or 'int') in new_data[variable].dtype.name:
                         scaling_factor = new_data[variable].std() 
                         new_data[variable] += np.random.normal(loc=0.0, scale=self._noise * scaling_factor,size=self._sample_size) 
-                    
+
                     elif 'bool' in new_data[variable].dtype.name:
                         probs = np.random.uniform(0, 1, self._sample_size )
                         new_data[variable] = np.where(probs < self._probability_of_change, 
                                                         np.logical_not(new_data[variable]), 
                                                         new_data[variable]) 
-                    
+
                     elif 'category' in new_data[variable].dtype.name:
                         categories = new_data[variable].unique()
                         # Find the set difference for each row
-                        changed_data = new_data[variable].apply( lambda row: list( set(categories) - set([row]) ) )
+                        changed_data = new_data[variable].apply(
+                            lambda row: list(set(categories) - {row})
+                        )
+
                         # Choose one out of the remaining
                         changed_data = changed_data.apply( lambda row: random.choice(row)  )
                         new_data[variable] = np.where(probs < self._probability_of_change, changed_data)

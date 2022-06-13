@@ -57,14 +57,15 @@ class RegressionEstimator(CausalEstimator):
                     self._estimate_effect_fn,
                     effect_modifier_names=self._effect_modifier_names)
         intercept_parameter = self.model.params[0]
-        estimate = CausalEstimate(estimate=effect_estimate,
-                              control_value=self._control_value,
-                              treatment_value=self._treatment_value,
-                              conditional_estimates=conditional_effect_estimates,
-                              target_estimand=self._target_estimand,
-                              realized_estimand_expr=self.symbolic_estimator,
-                              intercept=intercept_parameter)
-        return estimate
+        return CausalEstimate(
+            estimate=effect_estimate,
+            control_value=self._control_value,
+            treatment_value=self._treatment_value,
+            conditional_estimates=conditional_effect_estimates,
+            target_estimand=self._target_estimand,
+            realized_estimand_expr=self.symbolic_estimator,
+            intercept=intercept_parameter,
+        )
 
     def _estimate_effect_fn(self, data_df):
         est = self._estimate_effect(data_df, need_conditional_estimates=False)

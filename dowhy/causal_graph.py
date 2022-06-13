@@ -35,10 +35,8 @@ class CausalGraph:
         #re.sub only takes string parameter so the first if is to avoid error
         #if the input is a text file, convert the contained data into string
         if isinstance(graph, str) and re.match(r".*\.txt" , str(graph)): 
-            text_file = open(graph , "r")
-            graph = text_file.read()
-            text_file.close()
- 
+            with open(graph , "r") as text_file:
+                graph = text_file.read()
         if isinstance(graph, str) and re.match(r"^dag", graph):   #Convert daggity output to dot format 
             graph = daggity_to_dot(graph)
 
@@ -57,12 +55,15 @@ class CausalGraph:
                 import pygraphviz as pgv
                 self._graph = nx.DiGraph(nx.drawing.nx_agraph.read_dot(graph))
             except Exception as e:
-                self.logger.error("Pygraphviz cannot be loaded. " + str(e) + "\nTrying pydot...")
+                self.logger.error(
+                    f"Pygraphviz cannot be loaded. {str(e)}" + "\nTrying pydot..."
+                )
+
                 try:
                     import pydot
                     self._graph = nx.DiGraph(nx.drawing.nx_pydot.read_dot(graph))
                 except Exception as e:
-                    self.logger.error("Error: Pydot cannot be loaded. " + str(e))
+                    self.logger.error(f"Error: Pydot cannot be loaded. {str(e)}")
                     raise e
         elif re.match(r".*\.gml", graph):
             self._graph = nx.DiGraph(nx.read_gml(graph))
@@ -72,13 +73,17 @@ class CausalGraph:
                 self._graph = pgv.AGraph(graph, strict=True, directed=True)
                 self._graph = nx.drawing.nx_agraph.from_agraph(self._graph)
             except Exception as e:
-                self.logger.error("Error: Pygraphviz cannot be loaded. " + str(e) + "\nTrying pydot ...")
+                self.logger.error(
+                    f"Error: Pygraphviz cannot be loaded. {str(e)}"
+                    + "\nTrying pydot ..."
+                )
+
                 try:
                     import pydot
                     P_list = pydot.graph_from_dot_data(graph)
                     self._graph = nx.drawing.nx_pydot.from_pydot(P_list[0])
                 except Exception as e:
-                    self.logger.error("Error: Pydot cannot be loaded. " + str(e))
+                    self.logger.error(f"Error: Pydot cannot be loaded. {str(e)}")
                     raise e
         elif re.match(".*graph\s*\[.*\]\s*", graph):
             self._graph = nx.DiGraph(nx.parse_gml(graph))
@@ -92,11 +97,11 @@ class CausalGraph:
         self._graph = self.add_node_attributes(observed_node_names)
 
     def view_graph(self, layout="dot", size=(8, 6), file_name="causal_model"):
-        out_filename = "{}.png".format(file_name)
+        out_filename = f"{file_name}.png"
         try:
             import pygraphviz as pgv
             agraph = nx.drawing.nx_agraph.to_agraph(self._graph)
-            agraph.graph_attr.update(size="{},{}!".format(size[0], size[0]))
+            agraph.graph_attr.update(size=f"{size[0]},{size[0]}!")
             agraph.draw(out_filename, format="png", prog=layout)
         except:
             self.logger.warning("Warning: Pygraphviz cannot be loaded. Check that graphviz and pygraphviz are installed.")
@@ -205,10 +210,11 @@ class CausalGraph:
         # Adding unobserved confounders
         current_common_causes = self.get_common_causes(self.treatment_name,
                                                        self.outcome_name)
-        create_new_common_cause = True
-        for node_name in current_common_causes:
-            if self._graph.nodes[node_name]["observed"] == "no":
-                create_new_common_cause = False
+        create_new_common_cause = all(
+            self._graph.nodes[node_name]["observed"] != "no"
+            for node_name in current_common_causes
+        )
+
         if create_new_common_cause:
             uc_label = "Unobserved Confounders"
             self._graph.add_node('U', label=uc_label, observed="no",
@@ -254,14 +260,13 @@ class CausalGraph:
 
     def check_dseparation(self, nodes1, nodes2, nodes3, new_graph=None,
             dseparation_algo="default"):
-        if dseparation_algo == "default":
-            if new_graph is None:
-                new_graph = self._graph
-            dseparated = nx.algorithms.d_separated(new_graph,
-                    set(nodes1), set(nodes2), set(nodes3))
-        else:
+        if dseparation_algo != "default":
             raise ValueError(f"{dseparation_algo} method for d-separation not supported.")
-        return dseparated
+        if new_graph is None:
+            new_graph = self._graph
+        return nx.algorithms.d_separated(
+            new_graph, set(nodes1), set(nodes2), set(nodes3)
+        )
 
     def check_valid_backdoor_set(self, nodes1, nodes2, nodes3,
             backdoor_paths=None, new_graph=None, dseparation_algo="default"):
@@ -280,7 +285,7 @@ class CausalGraph:
             # ignores new_graph parameter, always uses self._graph
             if backdoor_paths is None:
                 backdoor_paths = self.get_backdoor_paths(nodes1, nodes2)
-            dseparated = all([self.is_blocked(path, nodes3) for path in backdoor_paths])
+            dseparated = all(self.is_blocked(path, nodes3) for path in backdoor_paths)
         else:
             raise ValueError(f"{dseparation_algo} method for d-separation not supported.")
         return {'is_dseparated': dseparated}
@@ -298,11 +303,13 @@ class CausalGraph:
                         if self._graph.has_edge(pth[1], pth[0])]
                 # remove paths that have nodes1\node1 or nodes2\node2 as intermediate nodes
                 filtered_backdoor_paths = [
-                        pth
-                        for pth in backdoor_paths
-                        if len(nodes12.intersection(pth[1:-1]))==0]
+                    pth
+                    for pth in backdoor_paths
+                    if not nodes12.intersection(pth[1:-1])
+                ]
+
                 paths.extend(filtered_backdoor_paths)
-        self.logger.debug("Backdoor paths: " + str(paths))
+        self.logger.debug(f"Backdoor paths: {paths}")
         return paths
 
     def is_blocked(self, path, conditioned_nodes):
@@ -317,16 +324,10 @@ class CausalGraph:
                 collider_descendants = nx.descendants(self._graph, path[i+1])
                 if path[i+1] not in conditioned_nodes and all(cdesc not in conditioned_nodes for cdesc in collider_descendants):
                     has_unconditioned_collider=True
-            else: # chain or fork
-                if path[i+1] in conditioned_nodes:
-                    blocked_by_conditioning = True
-                    break
-        if blocked_by_conditioning:
-            return True
-        elif has_unconditioned_collider:
-            return True
-        else:
-            return False
+            elif path[i+1] in conditioned_nodes:
+                blocked_by_conditioning = True
+                break
+        return bool(blocked_by_conditioning or has_unconditioned_collider)
 
     def get_common_causes(self, nodes1, nodes2):
         """
@@ -344,7 +345,7 @@ class CausalGraph:
             parents_2 = self.get_parents(node)
             for parent in parents_2:
                 if parent not in nodes1:
-                    causes_2 = causes_2.union(set([parent,]))
+                    causes_2 = causes_2.union({parent})
                     causes_2 = causes_2.union(self.get_ancestors(parent))
         return list(causes_1.intersection(causes_2))
 
@@ -367,10 +368,7 @@ class CausalGraph:
         return set(self._graph.predecessors(node_name))
 
     def get_ancestors(self, node_name, new_graph=None):
-        if new_graph is None:
-            graph=self._graph
-        else:
-            graph=new_graph
+        graph = self._graph if new_graph is None else new_graph
         return set(nx.ancestors(graph, node_name))
 
     def get_descendants(self, nodes):
@@ -380,11 +378,10 @@ class CausalGraph:
         return descendants
 
     def all_observed(self, node_names):
-        for node_name in node_names:
-            if self._graph.nodes[node_name]["observed"] != "yes":
-                return False
-
-        return True
+        return all(
+            self._graph.nodes[node_name]["observed"] == "yes"
+            for node_name in node_names
+        )
 
     def get_all_nodes(self, include_unobserved=True):
         nodes = self._graph.nodes
@@ -394,12 +391,11 @@ class CausalGraph:
         return nodes
 
     def filter_unobserved_variables(self, node_names):
-        observed_node_names = list()
-        for node_name in node_names:
-            if self._graph.nodes[node_name]["observed"] == "yes":
-                observed_node_names.append(node_name)
-
-        return observed_node_names
+        return [
+            node_name
+            for node_name in node_names
+            if self._graph.nodes[node_name]["observed"] == "yes"
+        ]
 
     def get_instruments(self, treatment_nodes, outcome_nodes):
         treatment_nodes = parse_state(treatment_nodes)
@@ -420,9 +416,10 @@ class CausalGraph:
         # As-if-random setup
         children_causes_outcome = [nx.descendants(g_no_parents_treatment, v)
                                    for v in ancestors_outcome]
-        children_causes_outcome = set([item
-                                       for sublist in children_causes_outcome
-                                       for item in sublist])
+        children_causes_outcome = {
+            item for sublist in children_causes_outcome for item in sublist
+        }
+
 
         # As-if-random
         instruments = candidate_instruments.difference(children_causes_outcome)
@@ -439,7 +436,7 @@ class CausalGraph:
         node1 = nodes1[0]
         node2 = nodes2[0]
         # convert the outputted generator into a list
-        return [p for p in nx.all_simple_paths(self._graph, source=node1, target=node2)]
+        return list(nx.all_simple_paths(self._graph, source=node1, target=node2))
 
     def has_directed_path(self, nodes1, nodes2):
         """ Checks if there is any directed path between two sets of nodes.
@@ -472,7 +469,10 @@ class CausalGraph:
             if frontdoor_paths is None:
                 frontdoor_paths = self.get_all_directed_paths(nodes1, nodes2)
 
-            dseparated = all([self.is_blocked(path, candidate_nodes) for path in frontdoor_paths])
+            dseparated = all(
+                self.is_blocked(path, candidate_nodes) for path in frontdoor_paths
+            )
+
         else:
             raise ValueError(f"{dseparation_algo} method for d-separation not supported.")
         return dseparated
@@ -483,7 +483,6 @@ class CausalGraph:
         if mediation_paths is None:
             mediation_paths = self.get_all_directed_paths(nodes1, nodes2)
 
-        is_mediator = any([self.is_blocked(path, candidate_nodes) for path in mediation_paths])
-        return is_mediator
+        return any(self.is_blocked(path, candidate_nodes) for path in mediation_paths)
 
 

@@ -16,11 +16,11 @@ def adjacency_matrix_to_adjacency_list(adjacency_matrix, labels=None):
     :returns: Adjacency list as a dictionary.
     '''
 
-    adjlist = dict()
+    adjlist = {}
     if labels is None:
         labels = [str(i+1) for i in range(adjacency_matrix.shape[0])]
     for i in range(adjacency_matrix.shape[0]):
-        adjlist[labels[i]] = list()
+        adjlist[labels[i]] = []
         for j in range(adjacency_matrix.shape[1]):
             if adjacency_matrix[i, j] != 0:
                 adjlist[labels[i]].append(labels[j])
@@ -39,7 +39,7 @@ def adjacency_matrix_to_graph(adjacency_matrix, labels=None):
     dirs = np.where(idx)
     import graphviz
     d = graphviz.Digraph(engine='dot')
-    names = labels if labels else [f'x{i}' for i in range(len(adjacency_matrix))]
+    names = labels or [f'x{i}' for i in range(len(adjacency_matrix))]
     for name in names:
         d.node(name)
     for to, from_, coef in zip(dirs[0], dirs[1], adjacency_matrix[idx]):

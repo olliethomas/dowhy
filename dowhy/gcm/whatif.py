@@ -153,17 +153,15 @@ def _parent_samples_of(node, scm, samples):
 def _evaluate_intervention(node: Any,
                            interventions: Dict[Any, Callable[[np.ndarray], np.ndarray]],
                            pre_intervention_data: np.ndarray) -> np.ndarray:
-    # Check if we need to apply an intervention on the given node.
-    if node in interventions:
-        # Apply intervention function to the data of the node.
-        post_intervention_data = np.array(list(map(interventions[node], pre_intervention_data)))
-
-        # Check if the intervention function changes the shape of the data.
-        if pre_intervention_data.shape != post_intervention_data.shape:
-            raise RuntimeError(
-                'Dimension of data corresponding to the node `%s` after intervention is different than before '
-                'intervention.' % node)
-
-        return post_intervention_data
-    else:
+    if node not in interventions:
         return pre_intervention_data
+    # Apply intervention function to the data of the node.
+    post_intervention_data = np.array(list(map(interventions[node], pre_intervention_data)))
+
+    # Check if the intervention function changes the shape of the data.
+    if pre_intervention_data.shape != post_intervention_data.shape:
+        raise RuntimeError(
+            'Dimension of data corresponding to the node `%s` after intervention is different than before '
+            'intervention.' % node)
+
+    return post_intervention_data

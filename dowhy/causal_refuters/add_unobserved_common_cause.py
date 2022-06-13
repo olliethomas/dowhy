@@ -78,13 +78,12 @@ class AddUnobservedCommonCause(CausalRefuter):
 
         """
         observed_common_causes_names = self._target_estimand.get_backdoor_variables()
-        if len(observed_common_causes_names)>0:
-            observed_common_causes = self._data[observed_common_causes_names]
-            observed_common_causes = pd.get_dummies(observed_common_causes, drop_first=True)
-        else:
+        if len(observed_common_causes_names) <= 0:
             raise ValueError("There needs to be at least one common cause to" +
                     "automatically compute the default value of kappa_t."+
                 " Provide a value for kappa_t")
+        observed_common_causes = self._data[observed_common_causes_names]
+        observed_common_causes = pd.get_dummies(observed_common_causes, drop_first=True)
         t = self._data[self._treatment_name]
         # Standardizing the data
         observed_common_causes = StandardScaler().fit_transform(observed_common_causes)
@@ -135,13 +134,12 @@ class AddUnobservedCommonCause(CausalRefuter):
 
         """
         observed_common_causes_names = self._target_estimand.get_backdoor_variables()
-        if len(observed_common_causes_names)>0:
-            observed_common_causes = self._data[observed_common_causes_names]
-            observed_common_causes = pd.get_dummies(observed_common_causes, drop_first=True)
-        else:
+        if len(observed_common_causes_names) <= 0:
             raise ValueError("There needs to be at least one common cause to" +
                     "automatically compute the default value of kappa_y."+
                 " Provide a value for kappa_y")
+        observed_common_causes = self._data[observed_common_causes_names]
+        observed_common_causes = pd.get_dummies(observed_common_causes, drop_first=True)
         y = self._data[self._outcome_name]
         # Standardizing the data
         observed_common_causes = StandardScaler().fit_transform(observed_common_causes)
@@ -201,29 +199,16 @@ class AddUnobservedCommonCause(CausalRefuter):
             data = self._data, treatment_name = self._treatment_name, 
             percent_change_estimate = self.percent_change_estimate, significance_level = self.significance_level, benchmark_common_causes= self.benchmark_common_causes, null_hypothesis_effect = self.null_hypothesis_effect,
             frac_strength_treatment = self.frac_strength_treatment, frac_strength_outcome = self.frac_strength_outcome, common_causes_order = self._estimate.estimator._observed_common_causes.columns)
-            
+
             analyzer.check_sensitivity(plot = self.plot_estimate)
             return analyzer
         if self.kappa_t is None:
             self.kappa_t = self.infer_default_kappa_t()
         if self.kappa_y is None:
             self.kappa_y = self.infer_default_kappa_y()
-        if not isinstance(self.kappa_t, (list, np.ndarray)) and not isinstance(self.kappa_y, (list,np.ndarray)): # Deal with single value inputs
-            new_data = copy.deepcopy(self._data)
-            new_data = self.include_confounders_effect(new_data, self.kappa_t, self.kappa_y)
-            new_estimator = CausalEstimator.get_estimator_object(new_data, self._target_estimand, self._estimate)
-            new_effect = new_estimator.estimate_effect()
-            refute = CausalRefutation(self._estimate.value, new_effect.value,
-                                    refutation_type="Refute: Add an Unobserved Common Cause")
+        if isinstance(self.kappa_t, (list, np.ndarray)): # Deal with multiple value inputs
 
-            refute.new_effect_array = np.array(new_effect.value)
-            refute.new_effect = new_effect.value
-            refute.add_refuter(self)
-            return refute
-
-        else: # Deal with multiple value inputs
-
-            if isinstance(self.kappa_t, (list, np.ndarray)) and isinstance(self.kappa_y, (list, np.ndarray)): # Deal with range inputs
+            if isinstance(self.kappa_y, (list, np.ndarray)): # Deal with range inputs
                 # Get a 2D matrix of values
                 #x,y =  np.meshgrid(self.kappa_t, self.kappa_y) # x,y are both MxN
 
@@ -252,15 +237,19 @@ class AddUnobservedCommonCause(CausalRefuter):
                 ax = fig.add_axes([left, bottom, width, height])
 
                 oe = self._estimate.value
-                contour_levels = [oe/4.0, oe/2.0, (3.0/4)*oe, oe]
-                contour_levels.extend([0, np.min(results_matrix), np.max(results_matrix)])
+                contour_levels = [
+                    oe / 4.0,
+                    oe / 2.0,
+                    3.0 / 4 * oe,
+                    oe,
+                    *[0, np.min(results_matrix), np.max(results_matrix)],
+                ]
+
                 if self.plotmethod=="contour":
                     cp = plt.contourf(self.kappa_y, self.kappa_t, results_matrix,
                             levels=sorted(contour_levels))
-                    # Adding a label on the contour line for the original estimate
-                    fmt = {}
                     trueeffect_index = np.where(cp.levels==oe)[0][0]
-                    fmt[cp.levels[trueeffect_index]] = "Estimated Effect"
+                    fmt = {cp.levels[trueeffect_index]: "Estimated Effect"}
                     # Label every other level using strings
                     plt.clabel(cp,[cp.levels[trueeffect_index]],inline=True, fmt=fmt)
                     plt.colorbar(cp)
@@ -282,7 +271,7 @@ class AddUnobservedCommonCause(CausalRefuter):
                 outcomes = np.random.rand(len(self.kappa_t))
                 orig_data = copy.deepcopy(self._data)
 
-                for i in range(0,len(self.kappa_t)):
+                for i in range(len(self.kappa_t)):
                     new_data = self.include_confounders_effect(orig_data, self.kappa_t[i], self.kappa_y)
                     new_estimator = CausalEstimator.get_estimator_object(new_data, self._target_estimand, self._estimate)
                     new_effect = new_estimator.estimate_effect()
@@ -312,39 +301,18 @@ class AddUnobservedCommonCause(CausalRefuter):
 
                 return refute
 
-            elif isinstance(self.kappa_y, (list, np.ndarray)):
-                outcomes = np.random.rand(len(self.kappa_y))
-                orig_data = copy.deepcopy(self._data)
+        elif not isinstance(self.kappa_y, (list, np.ndarray)): # Deal with single value inputs
+            new_data = copy.deepcopy(self._data)
+            new_data = self.include_confounders_effect(new_data, self.kappa_t, self.kappa_y)
+            new_estimator = CausalEstimator.get_estimator_object(new_data, self._target_estimand, self._estimate)
+            new_effect = new_estimator.estimate_effect()
+            refute = CausalRefutation(self._estimate.value, new_effect.value,
+                                    refutation_type="Refute: Add an Unobserved Common Cause")
 
-                for i in range(0, len(self.kappa_y)):
-                    new_data = self.include_confounders_effect(orig_data, self.kappa_t, self.kappa_y[i])
-                    new_estimator = CausalEstimator.get_estimator_object(new_data, self._target_estimand, self._estimate)
-                    new_effect = new_estimator.estimate_effect()
-                    refute = CausalRefutation(self._estimate.value, new_effect.value,
-                                            refutation_type="Refute: Add an Unobserved Common Cause")
-                    self.logger.debug(refute)
-                    outcomes[i] = refute.new_effect # Populate the results
-
-                refute.new_effect_array = outcomes
-                refute.new_effect = (np.min(outcomes), np.max(outcomes))
-                refute.add_refuter(self)
-                if self.plotmethod is None:
-                    return refute
-
-                import matplotlib
-                import matplotlib.pyplot as plt
-                fig = plt.figure(figsize=(6,5))
-                left, bottom, width, height = 0.1, 0.1, 0.8, 0.8
-                ax = fig.add_axes([left, bottom, width, height])
-
-                plt.plot(self.kappa_y, outcomes)
-                plt.axhline(self._estimate.value, linestyle='--',color="gray")
-                ax.set_title('Effect of Unobserved Common Cause')
-                ax.set_xlabel('Value of Linear Constant on Outcome')
-                ax.set_ylabel('Estimated Effect after adding the common cause')
-                plt.show()
-
-                return refute
+            refute.new_effect_array = np.array(new_effect.value)
+            refute.new_effect = new_effect.value
+            refute.add_refuter(self)
+            return refute
 
     def include_confounders_effect(self, new_data, kappa_t, kappa_y):
         """

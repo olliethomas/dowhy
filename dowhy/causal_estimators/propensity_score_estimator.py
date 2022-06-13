@@ -32,7 +32,7 @@ class PropensityScoreEstimator(CausalEstimator):
         # parameters to create an object of this class
         args_dict = {k: v for k, v in locals().items()
                      if k not in type(self)._STD_INIT_ARGS}
-        args_dict.update(kwargs)
+        args_dict |= kwargs
         super().__init__(*args, **args_dict)
 
         # Enable the user to pass params for a custom propensity model
@@ -42,11 +42,12 @@ class PropensityScoreEstimator(CausalEstimator):
 
         # Check if the treatment is one-dimensional
         if len(self._treatment_name) > 1:
-            error_msg = str(self.__class__) + "cannot handle more than one treatment variable"
+            error_msg = f"{str(self.__class__)}cannot handle more than one treatment variable"
+
             raise Exception(error_msg)
         # Checking if the treatment is binary
         treatment_values = self._data[self._treatment_name[0]].astype(int).unique()
-        if any([v not in [0,1] for v in treatment_values]):
+        if any(v not in [0, 1] for v in treatment_values):
             error_msg = "Propensity score methods are applicable only for binary treatments"
             self.logger.error(error_msg)
             raise Exception(error_msg)

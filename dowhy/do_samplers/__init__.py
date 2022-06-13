@@ -10,12 +10,15 @@ def get_class_object(method_name, *args, **kwargs):
     try:
         module_name = method_name
         class_name = string.capwords(method_name, "_").replace('_', '')
-        do_sampler_module = import_module('.' + module_name, package=PACKAGE_NAME)
+        do_sampler_module = import_module(f'.{module_name}', package=PACKAGE_NAME)
         do_sampler_class = getattr(do_sampler_module, class_name)
         assert issubclass(do_sampler_class, DoSampler)
 
     except (AttributeError, AssertionError, ImportError) as e:
-        if isinstance(e, ImportError) and e.name != PACKAGE_NAME + '.' + module_name:
+        if (
+            isinstance(e, ImportError)
+            and e.name != f'{PACKAGE_NAME}.{module_name}'
+        ):
             raise e
-        raise ImportError('{} is not an existing do sampler.'.format(method_name))
+        raise ImportError(f'{method_name} is not an existing do sampler.')
     return do_sampler_class
